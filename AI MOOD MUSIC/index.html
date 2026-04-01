@@ -1,0 +1,1242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI Mood Music — Feel the Vibe</title>
+
+<!-- Google Fonts: Display + Body pairing -->
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet" />
+
+<style>
+/* ============================================================
+   CSS CUSTOM PROPERTIES — MOOD THEMES
+   ============================================================ */
+:root {
+  --bg-from: #0a0a0a;
+  --bg-mid:  #111111;
+  --bg-to:   #1a1a1a;
+  --accent:  #ffffff;
+  --accent2: #cccccc;
+  --glow:    rgba(255,255,255,0.15);
+  --text:    #ffffff;
+  --sub:     rgba(255,255,255,0.6);
+  --particle:#ffffff;
+  --transition-speed: 0.8s;
+}
+
+/* Mood colour palettes injected via JS on <body> data-mood */
+body[data-mood="happy"] {
+  --bg-from: #ff6b00;
+  --bg-mid:  #ffb347;
+  --bg-to:   #ffe066;
+  --accent:  #fff200;
+  --accent2: #ff6b00;
+  --glow:    rgba(255,226,0,0.35);
+  --text:    #1a0a00;
+  --sub:     rgba(26,10,0,0.65);
+  --particle:#fff200;
+}
+body[data-mood="calm"] {
+  --bg-from: #0d1b3e;
+  --bg-mid:  #1a3a6b;
+  --bg-to:   #4a90c4;
+  --accent:  #7fc8f8;
+  --accent2: #a8d8ea;
+  --glow:    rgba(127,200,248,0.3);
+  --text:    #e8f4fc;
+  --sub:     rgba(232,244,252,0.6);
+  --particle:#a8d8ea;
+}
+body[data-mood="sad"] {
+  --bg-from: #020712;
+  --bg-mid:  #071428;
+  --bg-to:   #0e2040;
+  --accent:  #4a6fa5;
+  --accent2: #7897c0;
+  --glow:    rgba(74,111,165,0.3);
+  --text:    #b8ccdf;
+  --sub:     rgba(184,204,223,0.55);
+  --particle:#4a6fa5;
+}
+body[data-mood="energetic"] {
+  --bg-from: #0d0020;
+  --bg-mid:  #3a0060;
+  --bg-to:   #8000ff;
+  --accent:  #ff00cc;
+  --accent2: #00ffcc;
+  --glow:    rgba(255,0,204,0.4);
+  --text:    #ffffff;
+  --sub:     rgba(255,255,255,0.65);
+  --particle:#ff00cc;
+}
+body[data-mood="focus"] {
+  --bg-from: #050508;
+  --bg-mid:  #0c0c14;
+  --bg-to:   #14141f;
+  --accent:  #5a4fff;
+  --accent2: #9b8fff;
+  --glow:    rgba(90,79,255,0.25);
+  --text:    #e0deff;
+  --sub:     rgba(224,222,255,0.55);
+  --particle:#5a4fff;
+}
+
+/* ============================================================
+   RESET & BASE
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  width: 100%; height: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: linear-gradient(135deg, var(--bg-from), var(--bg-mid), var(--bg-to));
+  color: var(--text);
+  min-height: 100vh;
+  transition:
+    background var(--transition-speed) ease,
+    color var(--transition-speed) ease;
+  position: relative;
+}
+
+/* ============================================================
+   ANIMATED GRADIENT BACKGROUND LAYER
+   ============================================================ */
+#bg-layer {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(135deg, var(--bg-from) 0%, var(--bg-mid) 50%, var(--bg-to) 100%);
+  background-size: 400% 400%;
+  animation: gradShift 8s ease infinite;
+  transition: background var(--transition-speed) ease;
+  z-index: 0;
+}
+@keyframes gradShift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* ============================================================
+   CANVAS PARTICLE LAYER
+   ============================================================ */
+#particle-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* ============================================================
+   MAIN LAYOUT
+   ============================================================ */
+#app {
+  position: relative;
+  z-index: 10;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.5rem;
+  gap: 2.5rem;
+}
+
+/* ============================================================
+   LOGO / WORDMARK
+   ============================================================ */
+.wordmark {
+  position: fixed;
+  top: 1.25rem;
+  left: 1.5rem;
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 1rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  opacity: 0.85;
+  transition: color var(--transition-speed) ease;
+  z-index: 100;
+}
+
+/* ============================================================
+   MUTE BUTTON
+   ============================================================ */
+#mute-btn {
+  position: fixed;
+  top: 1rem;
+  right: 1.5rem;
+  z-index: 100;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: var(--text);
+  font-size: 1.35rem;
+  width: 2.8rem;
+  height: 2.8rem;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(10px);
+  transition: transform 0.2s, background 0.3s, border-color 0.3s, box-shadow 0.3s;
+}
+#mute-btn:hover {
+  transform: scale(1.12);
+  background: var(--glow);
+  border-color: var(--accent);
+  box-shadow: 0 0 18px var(--glow);
+}
+
+/* ============================================================
+   HERO HEADER
+   ============================================================ */
+.hero {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.hero-eyebrow { display: none; }
+
+.hero h1 {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: clamp(2.2rem, 8vw, 5.5rem);
+  line-height: 1.05;
+  color: var(--text);
+  letter-spacing: -0.02em;
+  animation: fadeSlideDown 0.9s ease 0.1s both;
+  transition: color var(--transition-speed) ease;
+}
+
+.hero h1 span {
+  color: var(--accent);
+  display: inline-block;
+  transition: color var(--transition-speed) ease;
+  animation: pulseText 3s ease-in-out infinite;
+}
+
+@keyframes pulseText {
+  0%, 100% { text-shadow: 0 0 0px var(--accent); }
+  50%       { text-shadow: 0 0 30px var(--glow), 0 0 60px var(--glow); }
+}
+
+/* ============================================================
+   MOOD MESSAGE
+   ============================================================ */
+#mood-message {
+  font-family: 'DM Sans', sans-serif;
+  font-style: italic;
+  font-weight: 300;
+  font-size: clamp(1rem, 3vw, 1.5rem);
+  color: var(--sub);
+  min-height: 2.4rem;
+  text-align: center;
+  letter-spacing: 0.02em;
+  transition: color var(--transition-speed) ease, opacity 0.4s ease;
+  animation: fadeSlideDown 1s ease 0.2s both;
+}
+
+/* ============================================================
+   GLASSMORPHISM CARD (mood buttons wrapper)
+   ============================================================ */
+.glass-card {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 2rem;
+  padding: 2.5rem 2rem;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow:
+    0 8px 40px rgba(0,0,0,0.35),
+    inset 0 1px 0 rgba(255,255,255,0.12);
+  animation: fadeSlideUp 1s ease 0.3s both;
+  transition: border-color var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
+  max-width: 680px;
+  width: 100%;
+}
+
+/* ============================================================
+   MOOD BUTTONS GRID
+   ============================================================ */
+.mood-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 1rem;
+}
+
+.mood-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1.25rem 0.75rem;
+  border-radius: 1.25rem;
+  border: 1.5px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.05);
+  color: var(--text);
+  cursor: pointer;
+  font-family: 'Syne', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  position: relative;
+  overflow: hidden;
+  transition:
+    transform 0.25s cubic-bezier(.34,1.56,.64,1),
+    border-color 0.3s ease,
+    background 0.3s ease,
+    box-shadow 0.3s ease,
+    color var(--transition-speed) ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mood-btn .emoji {
+  font-size: 2.2rem;
+  display: block;
+  transition: transform 0.3s cubic-bezier(.34,1.56,.64,1);
+  line-height: 1;
+}
+
+.mood-btn:hover {
+  transform: translateY(-6px) scale(1.04);
+  border-color: var(--accent);
+  background: var(--glow);
+  box-shadow:
+    0 0 20px var(--glow),
+    0 8px 24px rgba(0,0,0,0.25);
+}
+
+.mood-btn:hover .emoji {
+  transform: scale(1.25) rotate(-5deg);
+}
+
+.mood-btn:active {
+  transform: scale(0.96);
+}
+
+/* Active / selected state */
+.mood-btn.active {
+  border-color: var(--accent);
+  background: var(--glow);
+  box-shadow:
+    0 0 30px var(--glow),
+    0 0 60px rgba(0,0,0,0.1);
+  animation: btnPop 0.4s cubic-bezier(.34,1.56,.64,1) both;
+}
+
+.mood-btn.active .emoji {
+  animation: emojiBounce 0.6s cubic-bezier(.34,1.56,.64,1) both;
+}
+
+@keyframes btnPop {
+  0%   { transform: scale(0.92); }
+  60%  { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
+@keyframes emojiBounce {
+  0%   { transform: scale(1) rotate(0deg); }
+  30%  { transform: scale(1.5) rotate(-10deg); }
+  60%  { transform: scale(0.9) rotate(5deg); }
+  100% { transform: scale(1.15) rotate(0deg); }
+}
+
+/* Ripple effect on click */
+.mood-btn::after {
+  content: '';
+  position: absolute;
+  inset: 50% 50%;
+  background: var(--accent);
+  opacity: 0;
+  border-radius: 50%;
+  transform: translate(-50%,-50%) scale(0);
+  transition: transform 0.5s ease, opacity 0.5s ease;
+}
+.mood-btn.ripple::after {
+  inset: 0;
+  border-radius: 1.25rem;
+  transform: scale(1);
+  opacity: 0.18;
+  transition: transform 0.4s ease, opacity 0.5s ease;
+}
+
+/* ============================================================
+   SURPRISE BUTTON
+   ============================================================ */
+#surprise-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 1rem 2.2rem;
+  background: transparent;
+  border: 2px solid var(--accent);
+  border-radius: 50px;
+  color: var(--accent);
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 0.9rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition:
+    background 0.3s ease,
+    color 0.3s ease,
+    box-shadow 0.3s ease,
+    transform 0.2s ease,
+    border-color var(--transition-speed) ease;
+  animation: fadeSlideUp 1s ease 0.5s both;
+}
+
+#surprise-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--accent);
+  transform: translateY(100%);
+  transition: transform 0.35s cubic-bezier(.34,1.56,.64,1);
+  border-radius: 50px;
+  z-index: 0;
+}
+
+#surprise-btn span { position: relative; z-index: 1; }
+#surprise-btn:hover::before { transform: translateY(0); }
+#surprise-btn:hover {
+  color: var(--bg-from);
+  box-shadow: 0 0 30px var(--glow);
+  transform: translateY(-3px);
+}
+#surprise-btn:active { transform: scale(0.96); }
+
+#surprise-btn .dice {
+  font-size: 1.2rem;
+  position: relative;
+  z-index: 1;
+  transition: transform 0.4s ease;
+}
+#surprise-btn:hover .dice {
+  animation: diceSpin 0.5s ease;
+}
+@keyframes diceSpin {
+  0%   { transform: rotate(0deg) scale(1); }
+  50%  { transform: rotate(180deg) scale(1.3); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+
+/* ============================================================
+   NOW PLAYING BADGE
+   ============================================================ */
+#now-playing {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: rgba(0,0,0,0.55);
+  border: 1px solid rgba(255,255,255,0.15);
+  backdrop-filter: blur(20px);
+  border-radius: 50px;
+  padding: 0.65rem 1.4rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.8rem;
+  color: var(--text);
+  z-index: 200;
+  transition:
+    transform 0.5s cubic-bezier(.34,1.56,.64,1),
+    border-color var(--transition-speed) ease,
+    color var(--transition-speed) ease;
+  white-space: nowrap;
+}
+#now-playing.visible {
+  transform: translateX(-50%) translateY(0);
+}
+.np-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+  animation: npPulse 1.2s ease-in-out infinite;
+  transition: background var(--transition-speed) ease;
+}
+@keyframes npPulse {
+  0%,100% { transform: scale(1); opacity: 1; }
+  50%      { transform: scale(1.6); opacity: 0.6; }
+}
+.np-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 16px;
+}
+.np-bars span {
+  width: 3px;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: background var(--transition-speed) ease;
+  animation: barDance 0.8s ease-in-out infinite;
+}
+.np-bars span:nth-child(2) { animation-delay: 0.15s; }
+.np-bars span:nth-child(3) { animation-delay: 0.3s; }
+@keyframes barDance {
+  0%,100% { height: 5px; }
+  50%      { height: 14px; }
+}
+
+/* ============================================================
+   KEYFRAME UTILITIES
+   ============================================================ */
+@keyframes fadeSlideDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ============================================================
+   SCROLL-STOPPING PULSE RING (behind card)
+   ============================================================ */
+.pulse-ring {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.pulse-ring::before, .pulse-ring::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  border: 1.5px solid var(--glow);
+  animation: ringExpand 3.5s ease-out infinite;
+  transition: border-color var(--transition-speed) ease;
+}
+.pulse-ring::after {
+  animation-delay: 1.75s;
+}
+@keyframes ringExpand {
+  0%   { width: 50px; height: 50px; opacity: 0.6; }
+  100% { width: 90vmax; height: 90vmax; opacity: 0; }
+}
+
+/* ============================================================
+   MOBILE RESPONSIVE
+   ============================================================ */
+@media (max-width: 480px) {
+  .mood-grid { grid-template-columns: repeat(3, 1fr); gap: 0.75rem; }
+  .glass-card { padding: 1.75rem 1.25rem; border-radius: 1.5rem; }
+  .mood-btn { padding: 1rem 0.5rem; }
+  .mood-btn .emoji { font-size: 1.8rem; }
+  #surprise-btn { padding: 0.85rem 1.5rem; font-size: 0.8rem; }
+}
+@media (max-width: 360px) {
+  .mood-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ============================================================
+   TOAST / FIRST-TIME HINT
+   ============================================================ */
+#hint {
+  position: fixed;
+  top: 4rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255,255,255,0.1);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 50px;
+  padding: 0.5rem 1.2rem;
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.8);
+  z-index: 100;
+  animation: hintFade 4s ease forwards;
+  pointer-events: none;
+  white-space: nowrap;
+}
+@keyframes hintFade {
+  0%   { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+  15%  { opacity: 1; transform: translateX(-50%) translateY(0); }
+  75%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     FIXED UI CHROME
+     ============================================================ -->
+<div class="wordmark">AI Mood Music</div>
+
+<button id="mute-btn" title="Toggle mute" aria-label="Toggle mute">🔇</button>
+
+<div id="hint">👆 Pick a mood to begin your experience</div>
+
+<!-- ============================================================
+     LAYERED BACKGROUNDS
+     ============================================================ -->
+<div id="bg-layer"></div>
+<canvas id="particle-canvas"></canvas>
+<div class="pulse-ring"></div>
+
+<!-- ============================================================
+     NOW PLAYING BADGE
+     ============================================================ -->
+<div id="now-playing">
+  <div class="np-dot"></div>
+  <div class="np-bars">
+    <span></span><span></span><span></span>
+  </div>
+  <span id="np-label">Select a mood</span>
+</div>
+
+<!-- ============================================================
+     MAIN APP
+     ============================================================ -->
+<main id="app">
+
+  <div class="hero">
+    <p class="hero-eyebrow">Weboreel AI Hackathon</p>
+    <h1>What's Your <span>Mood</span><br>Today?</h1>
+  </div>
+
+  <p id="mood-message">Choose a mood and let the magic begin ✨</p>
+
+  <!-- Mood Buttons Card -->
+  <div class="glass-card">
+    <div class="mood-grid">
+      <button class="mood-btn" data-mood="happy"    aria-label="Happy mood">
+        <span class="emoji">😊</span>
+        <span>Happy</span>
+      </button>
+      <button class="mood-btn" data-mood="calm"     aria-label="Calm mood">
+        <span class="emoji">😌</span>
+        <span>Calm</span>
+      </button>
+      <button class="mood-btn" data-mood="sad"      aria-label="Sad mood">
+        <span class="emoji">😢</span>
+        <span>Sad</span>
+      </button>
+      <button class="mood-btn" data-mood="energetic" aria-label="Energetic mood">
+        <span class="emoji">⚡</span>
+        <span>Energetic</span>
+      </button>
+      <button class="mood-btn" data-mood="focus"    aria-label="Focus mood">
+        <span class="emoji">🧠</span>
+        <span>Focus</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Surprise Button -->
+  <button id="surprise-btn">
+    <span class="dice">🎲</span>
+    <span>Surprise My Mood</span>
+  </button>
+
+</main>
+
+<script>
+/* ============================================================
+   AI MOOD MUSIC — FULL JAVASCRIPT
+   ============================================================ */
+
+/* ----------------------------------------------------------
+   1. MOOD DATA
+   ---------------------------------------------------------- */
+const MOODS = {
+  happy: {
+    label: 'Happy',
+    emoji: '😊',
+    message: 'Let the sunshine in. ☀️',
+    audio: 'happy.mp3',
+    particles: 'confetti',
+    nowPlaying: '🎵 Upbeat Instrumental'
+  },
+  calm: {
+    label: 'Calm',
+    emoji: '😌',
+    message: 'Relax and breathe. 🌊',
+    audio: 'calm.mp3',
+    particles: 'clouds',
+    nowPlaying: '🎵 Lo-Fi Chill'
+  },
+  sad: {
+    label: 'Sad',
+    emoji: '😢',
+    message: 'Every storm passes. 🌧',
+    audio: 'sad.mp3',
+    particles: 'rain',
+    nowPlaying: '🎵 Soft Piano'
+  },
+  energetic: {
+    label: 'Energetic',
+    emoji: '⚡',
+    message: "Let's conquer today. 🔥",
+    audio: 'energetic.mp3',
+    particles: 'pulse',
+    nowPlaying: '🎵 Energetic EDM'
+  },
+  focus: {
+    label: 'Focus',
+    emoji: '🧠',
+    message: 'Deep focus mode. 🎯',
+    audio: 'focus.mp3',
+    particles: 'dots',
+    nowPlaying: '🎵 Ambient Focus'
+  }
+};
+
+/* ----------------------------------------------------------
+   2. STATE
+   ---------------------------------------------------------- */
+let currentMood   = null;
+let isMuted       = false;
+let audioStarted  = false;  // first interaction flag
+
+/* ----------------------------------------------------------
+   3. DOM REFS
+   ---------------------------------------------------------- */
+const body         = document.body;
+const muteBtn      = document.getElementById('mute-btn');
+const moodMessage  = document.getElementById('mood-message');
+const nowPlaying   = document.getElementById('now-playing');
+const npLabel      = document.getElementById('np-label');
+const surpriseBtn  = document.getElementById('surprise-btn');
+const moodBtns     = document.querySelectorAll('.mood-btn');
+
+/* ----------------------------------------------------------
+   4. PARTICLE ENGINE
+   ---------------------------------------------------------- */
+const canvas  = document.getElementById('particle-canvas');
+const ctx     = canvas.getContext('2d');
+let particles = [];
+let animId    = null;
+let particleType = null;
+
+function resizeCanvas() {
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+/* Factory: create a particle based on type */
+function makeParticle(type) {
+  const W = canvas.width, H = canvas.height;
+  const base = {
+    x: Math.random() * W,
+    y: Math.random() * H,
+    opacity: Math.random() * 0.6 + 0.2,
+    life: 1,
+    type
+  };
+
+  switch (type) {
+    case 'confetti':
+      return { ...base,
+        y: -20,
+        vx: (Math.random() - 0.5) * 2,
+        vy: Math.random() * 2 + 1,
+        rot: Math.random() * Math.PI * 2,
+        rotV: (Math.random() - 0.5) * 0.12,
+        size: Math.random() * 8 + 5,
+        color: ['#fff200','#ff6b00','#ff3399','#00ffaa','#00cfff'][Math.floor(Math.random()*5)]
+      };
+    case 'rain':
+      return { ...base,
+        x: Math.random() * W,
+        y: -40,
+        vy: Math.random() * 6 + 6,
+        vx: -1.5,
+        len: Math.random() * 18 + 10,
+        width: Math.random() * 1.2 + 0.4
+      };
+    case 'clouds':
+      return { ...base,
+        y: Math.random() * H * 0.7,
+        vx: Math.random() * 0.35 + 0.1,
+        vy: (Math.random() - 0.5) * 0.15,
+        size: Math.random() * 60 + 40
+      };
+    case 'pulse':
+      return { ...base,
+        x: W / 2 + (Math.random() - 0.5) * W * 0.5,
+        y: H / 2 + (Math.random() - 0.5) * H * 0.5,
+        radius: Math.random() * 3 + 1,
+        maxR: Math.random() * 100 + 50,
+        speed: Math.random() * 1.5 + 0.5
+      };
+    case 'dots':
+    default:
+      return { ...base,
+        vx: (Math.random() - 0.5) * 0.4,
+        vy: (Math.random() - 0.5) * 0.4,
+        size: Math.random() * 3 + 1
+      };
+  }
+}
+
+function spawnParticles(type, count = 80) {
+  particles = Array.from({ length: count }, () => makeParticle(type));
+}
+
+/* Draw functions per type */
+function drawParticle(p) {
+  ctx.save();
+  ctx.globalAlpha = p.opacity;
+
+  switch (p.type) {
+    case 'confetti': {
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2);
+      break;
+    }
+    case 'rain': {
+      ctx.strokeStyle = 'rgba(127,200,248,0.55)';
+      ctx.lineWidth = p.width;
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y);
+      ctx.lineTo(p.x + p.vx * 3, p.y + p.len);
+      ctx.stroke();
+      break;
+    }
+    case 'clouds': {
+      const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size);
+      grad.addColorStop(0, 'rgba(168,216,234,0.18)');
+      grad.addColorStop(1, 'rgba(168,216,234,0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    }
+    case 'pulse': {
+      ctx.strokeStyle = 'rgba(255,0,204,0.45)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+      ctx.stroke();
+      break;
+    }
+    case 'dots':
+    default: {
+      ctx.fillStyle = 'rgba(90,79,255,0.6)';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    }
+  }
+  ctx.restore();
+}
+
+function updateParticle(p) {
+  const W = canvas.width, H = canvas.height;
+  switch (p.type) {
+    case 'confetti':
+      p.x += p.vx; p.y += p.vy;
+      p.rot += p.rotV;
+      if (p.y > H + 20) { Object.assign(p, makeParticle('confetti')); p.y = -20; }
+      break;
+    case 'rain':
+      p.x += p.vx; p.y += p.vy;
+      if (p.y > H + 50) { Object.assign(p, makeParticle('rain')); p.y = -40; }
+      break;
+    case 'clouds':
+      p.x += p.vx; p.y += p.vy;
+      if (p.x > W + p.size) { p.x = -p.size; }
+      break;
+    case 'pulse':
+      p.radius += p.speed;
+      p.opacity = Math.max(0, 0.6 - p.radius / p.maxR);
+      if (p.radius >= p.maxR) { Object.assign(p, makeParticle('pulse')); }
+      break;
+    case 'dots':
+    default:
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < 0 || p.x > W) p.vx *= -1;
+      if (p.y < 0 || p.y > H) p.vy *= -1;
+      break;
+  }
+}
+
+function animate() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  particles.forEach(p => { drawParticle(p); updateParticle(p); });
+  animId = requestAnimationFrame(animate);
+}
+
+function startParticles(type) {
+  if (animId) cancelAnimationFrame(animId);
+  const counts = { confetti: 90, rain: 120, clouds: 15, pulse: 40, dots: 60 };
+  spawnParticles(type, counts[type] || 70);
+  animate();
+}
+
+/* ----------------------------------------------------------
+   5. WEB AUDIO API SYNTHESIZER
+      Generates mood music entirely in-browser — no files needed.
+   ---------------------------------------------------------- */
+
+let audioCtx       = null;   // AudioContext (created on first interaction)
+let masterGain     = null;   // master volume node
+let activeNodes    = [];     // currently playing oscillator/source nodes
+let currentPattern = null;   // interval handle for rhythmic patterns
+
+/* Ensure AudioContext is created (must be after user gesture) */
+function ensureAudioCtx() {
+  if (audioCtx) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  masterGain = audioCtx.createGain();
+  masterGain.gain.value = isMuted ? 0 : 0.55;
+  masterGain.connect(audioCtx.destination);
+}
+
+/* Stop all active audio nodes and intervals */
+function stopAllAudio(fadeDuration = 0.6) {
+  if (currentPattern) { clearInterval(currentPattern); currentPattern = null; }
+  const now = audioCtx ? audioCtx.currentTime : 0;
+  activeNodes.forEach(n => {
+    try {
+      if (n.gain) {
+        n.gain.gain.cancelScheduledValues(now);
+        n.gain.gain.setValueAtTime(n.gain.gain.value, now);
+        n.gain.gain.linearRampToValueAtTime(0, now + fadeDuration);
+        setTimeout(() => { try { n.osc && n.osc.stop(); n.src && n.src.stop(); } catch(e){} }, fadeDuration * 1000 + 100);
+      } else {
+        try { n.stop(now + fadeDuration); } catch(e) {}
+      }
+    } catch(e) {}
+  });
+  activeNodes = [];
+}
+
+/* Helper: create an oscillator with its own gain */
+function makeOsc(type, freq, gainVal, detune = 0) {
+  const g   = audioCtx.createGain();
+  const osc = audioCtx.createOscillator();
+  osc.type      = type;
+  osc.frequency.value = freq;
+  osc.detune.value    = detune;
+  g.gain.value  = 0;
+  osc.connect(g);
+  g.connect(masterGain);
+  osc.start();
+  const now = audioCtx.currentTime;
+  g.gain.setValueAtTime(0, now);
+  g.gain.linearRampToValueAtTime(gainVal, now + 0.8);
+  activeNodes.push({ osc, gain: g });
+  return { osc, gain: g };
+}
+
+/* Helper: create filtered noise (for rain/ambient textures) */
+function makeNoise(filterFreq, filterType, gainVal) {
+  const bufSize = audioCtx.sampleRate * 2;
+  const buf     = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+  const data    = buf.getChannelData(0);
+  for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
+  const src     = audioCtx.createBufferSource();
+  src.buffer    = buf;
+  src.loop      = true;
+  const filter  = audioCtx.createBiquadFilter();
+  filter.type   = filterType;
+  filter.frequency.value = filterFreq;
+  const g       = audioCtx.createGain();
+  g.gain.value  = 0;
+  src.connect(filter);
+  filter.connect(g);
+  g.connect(masterGain);
+  src.start();
+  const now = audioCtx.currentTime;
+  g.gain.setValueAtTime(0, now);
+  g.gain.linearRampToValueAtTime(gainVal, now + 1.2);
+  activeNodes.push({ src, gain: g });
+  return { src, filter, gain: g };
+}
+
+/* Helper: schedule a single short beep / note hit */
+function scheduleNote(freq, time, dur, gainVal, type = 'sine', dest = masterGain) {
+  const osc = audioCtx.createOscillator();
+  const g   = audioCtx.createGain();
+  osc.type  = type;
+  osc.frequency.value = freq;
+  g.gain.setValueAtTime(0, time);
+  g.gain.linearRampToValueAtTime(gainVal, time + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, time + dur);
+  osc.connect(g);
+  g.connect(dest);
+  osc.start(time);
+  osc.stop(time + dur + 0.05);
+}
+
+/* ── MOOD MUSIC GENERATORS ─────────────────────────────── */
+
+function playHappy() {
+  // Warm upbeat: major chord pads + arpeggiated melody
+  const notes = [261.63, 329.63, 392.00, 523.25]; // C4 E4 G4 C5
+  notes.forEach((f, i) => makeOsc('sine',   f, 0.08 + i * 0.01));
+  notes.forEach((f, i) => makeOsc('triangle', f * 2, 0.04, -5 + i * 3));
+
+  // Arpeggiated melody pattern
+  const arpNotes = [523.25, 659.25, 783.99, 1046.50, 783.99, 659.25];
+  let step = 0;
+  currentPattern = setInterval(() => {
+    const t = audioCtx.currentTime;
+    scheduleNote(arpNotes[step % arpNotes.length], t, 0.18, 0.12, 'triangle');
+    step++;
+  }, 220);
+}
+
+function playCalm() {
+  // Soft blue: low pad + slow sine wave + gentle high shimmer
+  makeOsc('sine',     65.41,  0.10);   // C2 bass
+  makeOsc('sine',     130.81, 0.08, 3);
+  makeOsc('sine',     196.00, 0.06, -2);
+  makeOsc('triangle', 392.00, 0.04, 7);
+  makeNoise(400, 'lowpass', 0.04);     // soft texture
+
+  // Slow lo-fi chord stabs every ~2.5s
+  const calmChords = [
+    [261.63, 329.63, 392.00],
+    [220.00, 277.18, 329.63],
+    [174.61, 220.00, 261.63],
+    [261.63, 311.13, 392.00]
+  ];
+  let ci = 0;
+  currentPattern = setInterval(() => {
+    const t = audioCtx.currentTime;
+    calmChords[ci % calmChords.length].forEach(f => {
+      scheduleNote(f, t, 1.8, 0.07, 'sine');
+    });
+    ci++;
+  }, 2600);
+}
+
+function playSad() {
+  // Minor piano feel: Am chord + soft rain noise
+  makeNoise(800, 'lowpass', 0.08);     // rain texture
+  makeOsc('sine', 55.00, 0.09);        // A1
+  makeOsc('sine', 130.81, 0.07, 4);   // C3
+
+  // Slow descending minor melody
+  const sadNotes = [440, 392, 349.23, 329.63, 293.66, 261.63, 246.94, 261.63];
+  let si = 0;
+  currentPattern = setInterval(() => {
+    const t = audioCtx.currentTime;
+    scheduleNote(sadNotes[si % sadNotes.length], t, 0.9, 0.11, 'sine');
+    si++;
+  }, 1000);
+}
+
+function playEnergetic() {
+  // EDM: pumping bass + sawtooth synth + kick-snare
+  makeOsc('sawtooth', 55.00, 0.12, 0); // bass
+  makeOsc('sawtooth', 110.00, 0.07, 8);
+  makeOsc('square',   220.00, 0.05, -6);
+
+  // Kick drum simulation
+  let beat = 0;
+  currentPattern = setInterval(() => {
+    const t   = audioCtx.currentTime;
+    const bar = beat % 8;
+
+    // Kick on 0 and 4
+    if (bar === 0 || bar === 4) {
+      const k = audioCtx.createOscillator();
+      const kg = audioCtx.createGain();
+      k.frequency.setValueAtTime(150, t);
+      k.frequency.exponentialRampToValueAtTime(0.001, t + 0.3);
+      kg.gain.setValueAtTime(0.5, t);
+      kg.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+      k.connect(kg); kg.connect(masterGain);
+      k.start(t); k.stop(t + 0.31);
+    }
+
+    // Snare on 2 and 6
+    if (bar === 2 || bar === 6) {
+      const sn = makeNoise(2000, 'bandpass', 0);
+      sn.gain.gain.cancelScheduledValues(t);
+      sn.gain.gain.setValueAtTime(0.35, t);
+      sn.gain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+      setTimeout(() => {
+        try { sn.src.stop(); } catch(e) {}
+        activeNodes.splice(activeNodes.indexOf(sn), 1);
+      }, 200);
+    }
+
+    // Lead synth arpeggio
+    const edm = [880, 1046.50, 1174.66, 1318.51];
+    scheduleNote(edm[bar % edm.length], t, 0.13, 0.09, 'sawtooth');
+
+    beat++;
+  }, 187); // ~160 BPM
+}
+
+function playFocus() {
+  // Ambient: slow evolving drones + subtle pings
+  makeOsc('sine', 55.00, 0.08);
+  makeOsc('sine', 82.41, 0.06, 5);    // E2
+  makeOsc('sine', 110.00, 0.05, -3);
+  makeNoise(600, 'lowpass', 0.03);
+
+  const pingNotes = [659.25, 783.99, 880.00, 987.77];
+  let pi = 0;
+  currentPattern = setInterval(() => {
+    const t = audioCtx.currentTime;
+    scheduleNote(pingNotes[pi % pingNotes.length], t, 1.5, 0.06, 'sine');
+    pi++;
+  }, 3400);
+}
+
+/* Main switcher */
+function playMoodAudio(moodKey) {
+  ensureAudioCtx();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  stopAllAudio(0.5);
+
+  setTimeout(() => {
+    switch (moodKey) {
+      case 'happy':    playHappy();    break;
+      case 'calm':     playCalm();     break;
+      case 'sad':      playSad();      break;
+      case 'energetic':playEnergetic();break;
+      case 'focus':    playFocus();    break;
+    }
+    audioStarted = true;
+    updateMuteBtn();
+  }, 400);
+}
+
+function updateMuteBtn() {
+  muteBtn.textContent = isMuted ? '🔇' : '🔊';
+  if (masterGain) {
+    const now = audioCtx.currentTime;
+    masterGain.gain.cancelScheduledValues(now);
+    masterGain.gain.setValueAtTime(masterGain.gain.value, now);
+    masterGain.gain.linearRampToValueAtTime(isMuted ? 0 : 0.55, now + 0.25);
+  }
+}
+
+muteBtn.addEventListener('click', () => {
+  isMuted = !isMuted;
+  // If first interaction, ensure context is ready
+  if (!audioCtx && !isMuted && currentMood) {
+    playMoodAudio(currentMood);
+    return;
+  }
+  updateMuteBtn();
+});
+
+/* ----------------------------------------------------------
+   6. SET MOOD
+   ---------------------------------------------------------- */
+function setMood(moodKey) {
+  if (!moodKey || !MOODS[moodKey]) return;
+
+  const mood = MOODS[moodKey];
+  currentMood = moodKey;
+
+  /* Update body theme */
+  body.dataset.mood = moodKey;
+
+  /* Update bg layer inline style (forces CSS variable re-read) */
+  document.getElementById('bg-layer').style.opacity = '0.99';
+  setTimeout(() => {
+    document.getElementById('bg-layer').style.opacity = '1';
+  }, 50);
+
+  /* Update message */
+  moodMessage.style.opacity = '0';
+  setTimeout(() => {
+    moodMessage.textContent = mood.message;
+    moodMessage.style.opacity = '1';
+  }, 200);
+
+  /* Update button states */
+  moodBtns.forEach(btn => {
+    btn.classList.remove('active', 'ripple');
+    if (btn.dataset.mood === moodKey) {
+      btn.classList.add('active');
+      /* Ripple */
+      setTimeout(() => btn.classList.add('ripple'), 10);
+      setTimeout(() => btn.classList.remove('ripple'), 500);
+    }
+  });
+
+  /* Particles */
+  startParticles(mood.particles);
+
+  /* Audio */
+  playMoodAudio(moodKey);
+
+  /* Now Playing badge */
+  npLabel.textContent = mood.nowPlaying;
+  nowPlaying.classList.add('visible');
+}
+
+/* ----------------------------------------------------------
+   7. BUTTON LISTENERS
+   ---------------------------------------------------------- */
+moodBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    setMood(btn.dataset.mood);
+  });
+});
+
+/* Surprise button */
+surpriseBtn.addEventListener('click', () => {
+  const keys   = Object.keys(MOODS);
+  const others = keys.filter(k => k !== currentMood);
+  const pick   = others[Math.floor(Math.random() * others.length)];
+  setMood(pick);
+
+  /* Brief spin animation on the button */
+  surpriseBtn.style.transform = 'rotate(360deg) scale(1.05)';
+  surpriseBtn.style.transition = 'transform 0.5s ease';
+  setTimeout(() => {
+    surpriseBtn.style.transform = '';
+    surpriseBtn.style.transition = '';
+  }, 500);
+});
+
+/* ----------------------------------------------------------
+   8. IDLE ANIMATION — gentle floating dots before any mood
+   ---------------------------------------------------------- */
+(function initIdle() {
+  particleType = 'dots';
+  spawnParticles('dots', 40);
+  animate();
+})();
+
+/* ----------------------------------------------------------
+   9. KEYBOARD SHORTCUTS
+   ---------------------------------------------------------- */
+document.addEventListener('keydown', e => {
+  const map = { h: 'happy', c: 'calm', s: 'sad', e: 'energetic', f: 'focus' };
+  if (map[e.key.toLowerCase()]) setMood(map[e.key.toLowerCase()]);
+  if (e.key === 'm') { isMuted = !isMuted; updateMuteBtn(); }
+  if (e.key === 'r' || e.key === 'R') surpriseBtn.click();
+});
+
+</script>
+</body>
+</html>
