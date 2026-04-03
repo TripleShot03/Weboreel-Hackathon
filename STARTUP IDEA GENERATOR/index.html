@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🚀 Startup Idea Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Space+Mono:wght@400;700&family=Unbounded:wght@900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --neon-green: #00ff88;
+    --hot-pink: #ff2d6b;
+    --electric-blue: #00d4ff;
+    --yellow: #ffe600;
+    --purple: #9b5de5;
+    --bg: #030712;
+    --card-bg: rgba(255,255,255,0.04);
+    --border: rgba(255,255,255,0.08);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Space Mono', monospace;
+    background: var(--bg);
+    color: #fff;
+    min-height: 100vh;
+    overflow-x: hidden;
+    cursor: default;
+  }
+
+  /* ── Animated BG ── */
+  .bg-canvas {
+    position: fixed; inset: 0; z-index: 0;
+    background:
+      radial-gradient(ellipse 80% 60% at 20% 10%, rgba(0,212,255,.12) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 50% at 80% 80%, rgba(255,45,107,.10) 0%, transparent 60%),
+      radial-gradient(ellipse 70% 70% at 50% 50%, rgba(155,93,229,.08) 0%, transparent 70%),
+      var(--bg);
+    animation: bgPulse 8s ease-in-out infinite alternate;
+  }
+  @keyframes bgPulse {
+    0%   { filter: hue-rotate(0deg); }
+    100% { filter: hue-rotate(30deg); }
+  }
+
+  /* ── Grid overlay ── */
+  .grid-overlay {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background-image:
+      linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+
+  /* ── Floating Orbs ── */
+  .orbs { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+  .orb {
+    position: absolute; border-radius: 50%;
+    filter: blur(80px); opacity: .18;
+    animation: floatOrb linear infinite;
+  }
+  .orb:nth-child(1){ width:300px;height:300px;background:var(--neon-green);top:10%;left:5%;animation-duration:18s; }
+  .orb:nth-child(2){ width:200px;height:200px;background:var(--hot-pink);top:60%;right:8%;animation-duration:22s;animation-delay:-7s; }
+  .orb:nth-child(3){ width:250px;height:250px;background:var(--electric-blue);bottom:15%;left:30%;animation-duration:20s;animation-delay:-11s; }
+  .orb:nth-child(4){ width:180px;height:180px;background:var(--yellow);top:40%;left:55%;animation-duration:15s;animation-delay:-4s; }
+  @keyframes floatOrb {
+    0%   { transform: translate(0,0) scale(1); }
+    33%  { transform: translate(40px,-60px) scale(1.1); }
+    66%  { transform: translate(-30px,40px) scale(.9); }
+    100% { transform: translate(0,0) scale(1); }
+  }
+
+  /* ── Floating Emoji particles ── */
+  .particles { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+  .particle {
+    position: absolute; font-size: 1.5rem; opacity: 0;
+    animation: floatParticle linear infinite;
+  }
+  @keyframes floatParticle {
+    0%   { transform: translateY(110vh) rotate(0deg); opacity: 0; }
+    10%  { opacity: .4; }
+    90%  { opacity: .4; }
+    100% { transform: translateY(-10vh) rotate(360deg); opacity: 0; }
+  }
+
+  /* ── Layout ── */
+  .wrapper {
+    position: relative; z-index: 1;
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 60px 20px 100px;
+  }
+
+  /* ── Badge ── */
+  .badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(0,255,136,.1);
+    border: 1px solid rgba(0,255,136,.3);
+    border-radius: 100px;
+    padding: 6px 16px;
+    font-size: .7rem; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--neon-green);
+    margin-bottom: 28px;
+    animation: fadeSlideDown .6s ease both;
+  }
+  .badge span { width: 8px; height: 8px; background: var(--neon-green); border-radius: 50%; animation: blink 1.2s ease-in-out infinite; }
+  @keyframes blink { 0%,100%{opacity:1}50%{opacity:.2} }
+
+  /* ── Title ── */
+  .hero-title {
+    font-family: 'Unbounded', sans-serif;
+    font-size: clamp(2.4rem, 7vw, 5rem);
+    font-weight: 900;
+    text-align: center;
+    line-height: 1.05;
+    letter-spacing: -.02em;
+    animation: fadeSlideDown .7s .1s ease both;
+  }
+  .hero-title .word-rocket { display: inline-block; animation: rocket 3s ease-in-out infinite; }
+  @keyframes rocket {
+    0%,100%{ transform: translateY(0) rotate(-5deg); }
+    50%    { transform: translateY(-12px) rotate(5deg); }
+  }
+  .grad-text {
+    background: linear-gradient(90deg, var(--neon-green), var(--electric-blue), var(--hot-pink), var(--yellow));
+    background-size: 300% 300%;
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    animation: gradShift 4s linear infinite;
+  }
+  @keyframes gradShift {
+    0%  { background-position: 0% 50%; }
+    100%{ background-position: 300% 50%; }
+  }
+
+  .hero-sub {
+    margin-top: 18px;
+    font-size: clamp(.85rem, 2.2vw, 1.05rem);
+    color: rgba(255,255,255,.5);
+    text-align: center;
+    max-width: 440px;
+    line-height: 1.7;
+    animation: fadeSlideDown .7s .2s ease both;
+  }
+
+  /* ── Idea Card ── */
+  .idea-card {
+    margin: 42px 0 32px;
+    width: min(680px, 100%);
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 40px 36px;
+    text-align: center;
+    backdrop-filter: blur(20px);
+    position: relative;
+    overflow: hidden;
+    min-height: 150px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    animation: fadeSlideDown .7s .3s ease both;
+    transition: border-color .3s;
+  }
+  .idea-card::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(0,255,136,.05), rgba(0,212,255,.05), rgba(255,45,107,.05));
+    opacity: 0;
+    transition: opacity .4s;
+  }
+  .idea-card.active::before { opacity: 1; }
+  .idea-card.active { border-color: rgba(0,255,136,.25); }
+
+  .idea-placeholder {
+    font-size: 1rem; color: rgba(255,255,255,.2);
+    font-style: italic; letter-spacing: .05em;
+  }
+
+  .idea-emoji {
+    font-size: 3rem; margin-bottom: 14px;
+    display: block;
+    animation: popIn .4s cubic-bezier(.175,.885,.32,1.275) both;
+  }
+  .idea-text {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(1.5rem, 4.5vw, 2.4rem);
+    font-weight: 800;
+    color: #fff;
+    line-height: 1.2;
+    animation: slideUp .35s cubic-bezier(.175,.885,.32,1.275) both;
+  }
+  .idea-tag {
+    margin-top: 14px;
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: .7rem; letter-spacing: .1em; text-transform: uppercase;
+    padding: 4px 14px;
+    border-radius: 100px;
+    font-weight: 700;
+    animation: fadeIn .3s .2s ease both;
+  }
+  .idea-tag.normal  { background: rgba(0,255,136,.12); color: var(--neon-green); border:1px solid rgba(0,255,136,.25); }
+  .idea-tag.crazy   { background: rgba(255,45,107,.12); color: var(--hot-pink);   border:1px solid rgba(255,45,107,.25); }
+
+  @keyframes popIn {
+    0%  { transform: scale(0) rotate(-20deg); opacity: 0; }
+    100%{ transform: scale(1) rotate(0deg);  opacity: 1; }
+  }
+  @keyframes slideUp {
+    0%  { transform: translateY(30px); opacity: 0; }
+    100%{ transform: translateY(0);    opacity: 1; }
+  }
+  @keyframes fadeIn {
+    0%  { opacity: 0; }
+    100%{ opacity: 1; }
+  }
+  @keyframes fadeSlideDown {
+    0%  { transform: translateY(-20px); opacity: 0; }
+    100%{ transform: translateY(0);     opacity: 1; }
+  }
+
+  /* ── Buttons ── */
+  .btn-row {
+    display: flex; flex-wrap: wrap; gap: 14px; justify-content: center;
+    animation: fadeSlideDown .7s .4s ease both;
+  }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 10px;
+    border: none; border-radius: 14px;
+    font-family: 'Space Mono', monospace;
+    font-weight: 700; font-size: .9rem; letter-spacing: .03em;
+    padding: 16px 28px;
+    cursor: pointer;
+    position: relative; overflow: hidden;
+    transition: transform .15s, box-shadow .2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: rgba(255,255,255,.12);
+    opacity: 0;
+    transition: opacity .15s;
+  }
+  .btn:hover::after { opacity: 1; }
+  .btn:active { transform: scale(.95) !important; }
+
+  .btn-main {
+    background: linear-gradient(135deg, var(--neon-green), #00c8aa);
+    color: #000;
+    font-size: 1rem; padding: 18px 36px;
+    box-shadow: 0 0 28px rgba(0,255,136,.35), 0 4px 16px rgba(0,0,0,.3);
+  }
+  .btn-main:hover { transform: translateY(-3px); box-shadow: 0 0 48px rgba(0,255,136,.55), 0 8px 24px rgba(0,0,0,.4); }
+
+  .btn-crazy {
+    background: linear-gradient(135deg, var(--hot-pink), var(--purple));
+    color: #fff;
+    box-shadow: 0 0 24px rgba(255,45,107,.3), 0 4px 16px rgba(0,0,0,.3);
+  }
+  .btn-crazy:hover { transform: translateY(-3px); box-shadow: 0 0 44px rgba(255,45,107,.5), 0 8px 24px rgba(0,0,0,.4); }
+
+  .btn-share {
+    background: rgba(255,255,255,.06);
+    color: rgba(255,255,255,.8);
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 16px rgba(0,0,0,.2);
+  }
+  .btn-share:hover { transform: translateY(-3px); border-color: rgba(255,255,255,.2); }
+  .btn-share.copied { color: var(--neon-green); border-color: rgba(0,255,136,.4); }
+
+  /* pulse ring on main btn */
+  .btn-main .pulse-ring {
+    position: absolute; inset: 0; border-radius: 14px;
+    box-shadow: 0 0 0 0 rgba(0,255,136,.6);
+    animation: pulseRing 2.5s ease-out infinite;
+  }
+  @keyframes pulseRing {
+    0%  { box-shadow: 0 0 0 0 rgba(0,255,136,.5); }
+    70% { box-shadow: 0 0 0 18px rgba(0,255,136,0); }
+    100%{ box-shadow: 0 0 0 0 rgba(0,255,136,0); }
+  }
+
+  /* ── Counter ── */
+  .counter {
+    margin-top: 30px;
+    font-size: .75rem; color: rgba(255,255,255,.25); letter-spacing: .08em;
+    animation: fadeSlideDown .7s .5s ease both;
+  }
+  .counter strong { color: var(--neon-green); }
+
+  /* ── Mute Button ── */
+  .mute-btn {
+    position: fixed; bottom: 24px; right: 24px; z-index: 999;
+    background: rgba(255,255,255,.08);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    width: 48px; height: 48px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem;
+    cursor: pointer;
+    backdrop-filter: blur(12px);
+    transition: background .2s, transform .15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .mute-btn:hover { background: rgba(255,255,255,.14); transform: scale(1.1); }
+  .mute-btn:active { transform: scale(.9); }
+
+  /* ── Confetti Canvas ── */
+  #confetti-canvas {
+    position: fixed; inset: 0; z-index: 10;
+    pointer-events: none;
+  }
+
+  /* ── Copy toast ── */
+  .toast {
+    position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: rgba(0,255,136,.15); border: 1px solid rgba(0,255,136,.35);
+    color: var(--neon-green); font-size: .8rem; letter-spacing: .06em;
+    padding: 10px 22px; border-radius: 100px;
+    backdrop-filter: blur(12px);
+    opacity: 0; pointer-events: none;
+    transition: opacity .25s, transform .25s;
+    z-index: 100;
+    white-space: nowrap;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ── Stat bar ── */
+  .stats-row {
+    display: flex; gap: 20px; flex-wrap: wrap; justify-content: center;
+    margin-top: 36px;
+    animation: fadeSlideDown .7s .6s ease both;
+  }
+  .stat-chip {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 20px;
+    text-align: center;
+    backdrop-filter: blur(10px);
+  }
+  .stat-chip .val { font-family: 'Unbounded', sans-serif; font-size: 1.3rem; font-weight: 900; color: var(--electric-blue); }
+  .stat-chip .lbl { font-size: .62rem; color: rgba(255,255,255,.35); letter-spacing: .08em; text-transform: uppercase; margin-top: 2px; }
+
+  /* ── responsive ── */
+  @media(max-width:480px){
+    .idea-card{ padding: 28px 20px; }
+    .btn-main{ padding: 16px 24px; font-size: .9rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Background layers -->
+<div class="bg-canvas"></div>
+<div class="grid-overlay"></div>
+<div class="orbs">
+  <div class="orb"></div><div class="orb"></div>
+  <div class="orb"></div><div class="orb"></div>
+</div>
+<div class="particles" id="particles"></div>
+
+<!-- Confetti canvas -->
+<canvas id="confetti-canvas"></canvas>
+
+<!-- Mute button -->
+<button class="mute-btn" id="muteBtn" title="Toggle music">🔇</button>
+
+<!-- Toast -->
+<div class="toast" id="toast">✅ Copied to clipboard!</div>
+
+<!-- Main content -->
+<div class="wrapper">
+  <h1 class="hero-title">
+    <span class="word-rocket">🚀</span>&nbsp;
+    <span class="grad-text">Startup Idea</span><br>Generator
+  </h1>
+  <p class="hero-sub">Click the button to discover your next <strong style="color:#fff">billion-dollar startup</strong> idea.</p>
+
+  <!-- Idea display card -->
+  <div class="idea-card" id="ideaCard">
+    <p class="idea-placeholder" id="ideaPlaceholder">✨ Your idea awaits...</p>
+    <span class="idea-emoji" id="ideaEmoji" style="display:none"></span>
+    <div class="idea-text" id="ideaText" style="display:none"></div>
+    <div class="idea-tag" id="ideaTag" style="display:none"></div>
+  </div>
+
+  <!-- Buttons -->
+  <div class="btn-row">
+    <button class="btn btn-main" id="generateBtn" onclick="generateIdea('normal')">
+      <div class="pulse-ring"></div>
+      ⚡ Generate Startup Idea
+    </button>
+    <button class="btn btn-crazy" onclick="generateIdea('crazy')">
+      🎲 Generate Crazy Idea
+    </button>
+    <button class="btn btn-share" id="shareBtn" onclick="shareIdea()">
+      📤 Share Idea
+    </button>
+  </div>
+
+  <!-- Counter -->
+  <p class="counter" id="counter">Ideas generated: <strong>0</strong></p>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-chip"><div class="val">40+</div><div class="lbl">Ideas Pool</div></div>
+    <div class="stat-chip"><div class="val">∞</div><div class="lbl">Combinations</div></div>
+    <div class="stat-chip"><div class="val">$1B</div><div class="lbl">Potential</div></div>
+  </div>
+</div>
+
+<script>
+// ─── Data ──────────────────────────────────────────────────
+const normalIdeas = [
+  { text: "Uber for Dogs",         emoji: "🐶" },
+  { text: "Netflix for Books",     emoji: "📚" },
+  { text: "Airbnb for Parking",    emoji: "🅿️" },
+  { text: "Tinder for Study Partners", emoji: "📖" },
+  { text: "Spotify for Podcasts",  emoji: "🎙️" },
+  { text: "Amazon for Home Chefs", emoji: "👨‍🍳" },
+  { text: "Uber for Tutors",       emoji: "🎓" },
+  { text: "Netflix for Learning",  emoji: "🎬" },
+  { text: "Airbnb for Rooftops",   emoji: "🏙️" },
+  { text: "Duolingo for Coding",   emoji: "💻" },
+  { text: "Tinder for Co-Founders",emoji: "🤝" },
+  { text: "Uber for Groceries",    emoji: "🛒" },
+  { text: "Spotify for Meditation",emoji: "🧘" },
+  { text: "LinkedIn for Freelancers",emoji:"💼" },
+  { text: "Airbnb for Garages",    emoji: "🏠" },
+  { text: "Uber for Photographers",emoji: "📸" },
+  { text: "Netflix for Fitness",   emoji: "🏋️" },
+  { text: "Amazon for Local Farms",emoji: "🌾" },
+  { text: "Tinder for Roommates",  emoji: "🛋️" },
+  { text: "Spotify for Sound Baths",emoji:"🔮" },
+  { text: "Uber for Elderly Care", emoji: "👴" },
+  { text: "Airbnb for Boats",      emoji: "⛵" },
+  { text: "DoorDash for Medicine", emoji: "💊" },
+  { text: "Uber for Plumbers",     emoji: "🔧" },
+  { text: "Netflix for Live Events",emoji:"🎪" },
+  { text: "Airbnb for Farms",      emoji: "🚜" },
+  { text: "Uber for Lawyers",      emoji: "⚖️" },
+  { text: "Spotify for Audiobooks",emoji:"🎧" },
+  { text: "Amazon for Vintage Items",emoji:"🏺" },
+  { text: "LinkedIn for Artists",  emoji: "🎨" },
+];
+
+const crazyIdeas = [
+  { text: "Uber for Plants",       emoji: "🌵" },
+  { text: "Netflix for Cats",      emoji: "😺" },
+  { text: "Amazon for Dreams",     emoji: "💭" },
+  { text: "Airbnb for Wardrobes",  emoji: "👔" },
+  { text: "Tinder for Furniture",  emoji: "🛋️" },
+  { text: "Uber for Thoughts",     emoji: "🧠" },
+  { text: "Spotify for Rain",      emoji: "🌧️" },
+  { text: "Duolingo for Emotions", emoji: "😵" },
+  { text: "Amazon for Hugs",       emoji: "🤗" },
+  { text: "Netflix for Nightmares",emoji: "👾" },
+  { text: "Airbnb for Time Machines",emoji:"⏳" },
+  { text: "Uber for Aliens",       emoji: "👽" },
+  { text: "Spotify for Silence",   emoji: "🤫" },
+  { text: "LinkedIn for Ghosts",   emoji: "👻" },
+  { text: "Amazon for Imaginary Friends", emoji:"🧸" },
+  { text: "Tinder for Socks",      emoji: "🧦" },
+  { text: "Uber for Sandwiches",   emoji: "🥪" },
+  { text: "Netflix for Your Life", emoji: "🎭" },
+  { text: "Airbnb for Inside Jokes",emoji:"😂" },
+  { text: "Uber for Naps",         emoji: "😴" },
+];
+
+// ─── State ──────────────────────────────────────────────────
+let currentIdea = null;
+let ideaCount   = 0;
+let lastIdx     = -1;
+let musicStarted = false;
+let muted        = false;
+
+// ─── Audio (Web Audio API synth — no external files needed) ─
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let ctx;
+
+function ensureAudio() {
+  if (!ctx) ctx = new AudioCtx();
+  if (ctx.state === 'suspended') ctx.resume();
+}
+
+function playPop(crazy) {
+  ensureAudio();
+  if (muted) return;
+  const t = ctx.currentTime;
+  const notes = crazy
+    ? [523, 659, 784, 1047]   // C E G C  (crazy arp up)
+    : [784, 1047, 1319, 880];  // G C E G
+  notes.forEach((freq, i) => {
+    const osc  = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, t + i * .07);
+    gain.gain.setValueAtTime(.18, t + i * .07);
+    gain.gain.exponentialRampToValueAtTime(.001, t + i * .07 + .25);
+    osc.start(t + i * .07);
+    osc.stop(t + i * .07 + .3);
+  });
+}
+
+// Background music (simple looping synth beat)
+let bgInterval;
+
+function startBgMusic() {
+  if (musicStarted) return;
+  musicStarted = true;
+  updateMuteBtn();
+  scheduleBeat();
+}
+
+let beatTick = 0;
+function scheduleBeat() {
+  if (muted) { bgInterval = setTimeout(scheduleBeat, 500); return; }
+  ensureAudio();
+  const t   = ctx.currentTime;
+  const bpm = 120;
+  const beat= 60 / bpm;
+
+  // kick-ish pulse
+  if (beatTick % 4 === 0) {
+    const osc  = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(150, t);
+    osc.frequency.exponentialRampToValueAtTime(50, t + 0.15);
+    gain.gain.setValueAtTime(.22, t);
+    gain.gain.exponentialRampToValueAtTime(.001, t + 0.2);
+    osc.start(t); osc.stop(t + 0.22);
+  }
+
+  // hi-hat ish
+  if (beatTick % 2 === 1) {
+    const bufSize = ctx.sampleRate * 0.05;
+    const buf  = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1) * .04;
+    const src  = ctx.createBufferSource();
+    const gain = ctx.createGain();
+    src.buffer = buf;
+    src.connect(gain); gain.connect(ctx.destination);
+    gain.gain.setValueAtTime(.07, t);
+    gain.gain.exponentialRampToValueAtTime(.001, t + 0.05);
+    src.start(t);
+  }
+
+  // chord stab every 8 beats
+  if (beatTick % 8 === 0) {
+    [261, 329, 392].forEach((freq, i) => {
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type = 'triangle';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(.04, t);
+      gain.gain.exponentialRampToValueAtTime(.001, t + beat * 2);
+      osc.start(t); osc.stop(t + beat * 2);
+    });
+  }
+
+  beatTick++;
+  bgInterval = setTimeout(scheduleBeat, beat * 1000);
+}
+
+function updateMuteBtn() {
+  document.getElementById('muteBtn').textContent = muted ? '🔇' : '🎵';
+}
+
+// ─── Confetti ───────────────────────────────────────────────
+const canvas = document.getElementById('confetti-canvas');
+const cctx   = canvas.getContext('2d');
+let pieces   = [];
+
+function resizeCanvas() {
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+const COLORS = ['#00ff88','#ff2d6b','#00d4ff','#ffe600','#9b5de5','#ff9d00'];
+
+function spawnConfetti(crazy) {
+  for (let i = 0; i < (crazy ? 120 : 80); i++) {
+    pieces.push({
+      x: Math.random() * canvas.width,
+      y: -10,
+      r: Math.random() * 7 + 3,
+      d: Math.random() * 60 + 20,
+      color: COLORS[Math.floor(Math.random() * COLORS.length)],
+      tilt: Math.random() * 10 - 5,
+      tiltAngle: 0,
+      tiltSpeed: Math.random() * .08 + .02,
+      speed: Math.random() * 3 + 2,
+      opacity: 1,
+    });
+  }
+}
+
+function drawConfetti() {
+  cctx.clearRect(0, 0, canvas.width, canvas.height);
+  pieces.forEach(p => {
+    cctx.beginPath();
+    cctx.lineWidth  = p.r / 2;
+    cctx.strokeStyle = p.color;
+    cctx.globalAlpha = p.opacity;
+    cctx.moveTo(p.x + p.tilt + p.r / 4, p.y);
+    cctx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r / 4);
+    cctx.stroke();
+  });
+  cctx.globalAlpha = 1;
+  updateConfetti();
+}
+
+function updateConfetti() {
+  pieces = pieces.filter(p => p.opacity > 0.01);
+  pieces.forEach(p => {
+    p.tiltAngle += p.tiltSpeed;
+    p.y += p.speed;
+    p.tilt = Math.sin(p.tiltAngle) * 12;
+    if (p.y > canvas.height * .6) p.opacity -= .012;
+  });
+}
+
+let confettiRunning = false;
+function startConfetti(crazy) {
+  spawnConfetti(crazy);
+  if (confettiRunning) return;
+  confettiRunning = true;
+  function loop() {
+    drawConfetti();
+    if (pieces.length > 0) requestAnimationFrame(loop);
+    else confettiRunning = false;
+  }
+  requestAnimationFrame(loop);
+}
+
+// ─── Generate Idea ──────────────────────────────────────────
+function generateIdea(mode) {
+  startBgMusic();
+  const pool = mode === 'crazy' ? crazyIdeas : normalIdeas;
+  let idx;
+  do { idx = Math.floor(Math.random() * pool.length); } while (idx === lastIdx && pool.length > 1);
+  lastIdx = idx;
+  currentIdea = pool[idx];
+
+  // Update card
+  const card       = document.getElementById('ideaCard');
+  const emoji      = document.getElementById('ideaEmoji');
+  const text       = document.getElementById('ideaText');
+  const tag        = document.getElementById('ideaTag');
+  const placeholder= document.getElementById('ideaPlaceholder');
+
+  placeholder.style.display = 'none';
+
+  // Reset animations by cloning
+  const newEmoji = emoji.cloneNode(true);
+  const newText  = text.cloneNode(true);
+  const newTag   = tag.cloneNode(true);
+  emoji.parentNode.replaceChild(newEmoji, emoji);
+  text.parentNode.replaceChild(newText, text);
+  tag.parentNode.replaceChild(newTag, tag);
+
+  newEmoji.style.display = 'block';
+  newText.style.display  = 'block';
+  newTag.style.display   = 'inline-flex';
+
+  newEmoji.textContent = currentIdea.emoji;
+  newText.textContent  = `"${currentIdea.text}"`;
+  newTag.textContent   = mode === 'crazy' ? '🔥 Crazy Mode' : '💡 Normal Mode';
+  newTag.className     = `idea-tag ${mode}`;
+
+  card.classList.add('active');
+
+  // Counter
+  ideaCount++;
+  document.querySelector('#counter strong').textContent = ideaCount;
+
+  // FX
+  playPop(mode === 'crazy');
+  startConfetti(mode === 'crazy');
+}
+
+// ─── Share ──────────────────────────────────────────────────
+function shareIdea() {
+  if (!currentIdea) { generateIdea('normal'); return; }
+  const url = window.location.href;
+  const msg = `I just discovered this startup idea 😂\n\n"${currentIdea.text}"\n\nTry generating your idea here:\n${url}`;
+  navigator.clipboard.writeText(msg).then(() => {
+    const btn   = document.getElementById('shareBtn');
+    const toast = document.getElementById('toast');
+    btn.classList.add('copied');
+    btn.innerHTML = '✅ Copied!';
+    toast.classList.add('show');
+    setTimeout(() => {
+      btn.classList.remove('copied');
+      btn.innerHTML = '📤 Share Idea';
+      toast.classList.remove('show');
+    }, 2500);
+  }).catch(() => alert(`Copy this:\n\n${msg}`));
+}
+
+// ─── Mute ────────────────────────────────────────────────────
+document.getElementById('muteBtn').addEventListener('click', () => {
+  startBgMusic();
+  muted = !muted;
+  updateMuteBtn();
+});
+
+// ─── Floating emoji particles ────────────────────────────────
+const EMOJIS = ['🚀','💡','💰','🔥','⚡','🌟','🎯','💎','🦄','🎉'];
+const pContainer = document.getElementById('particles');
+EMOJIS.forEach((em, i) => {
+  const el = document.createElement('div');
+  el.className = 'particle';
+  el.textContent = em;
+  el.style.left = `${Math.random()*95}%`;
+  el.style.animationDuration = `${12 + Math.random()*10}s`;
+  el.style.animationDelay   = `${-Math.random()*15}s`;
+  el.style.fontSize = `${1 + Math.random()}rem`;
+  pContainer.appendChild(el);
+});
+
+// Extra particles
+for (let i = 0; i < 10; i++) {
+  const el = document.createElement('div');
+  el.className = 'particle';
+  el.textContent = EMOJIS[Math.floor(Math.random()*EMOJIS.length)];
+  el.style.left = `${Math.random()*95}%`;
+  el.style.animationDuration = `${10 + Math.random()*14}s`;
+  el.style.animationDelay   = `${-Math.random()*20}s`;
+  pContainer.appendChild(el);
+}
+</script>
+</body>
+</html>
