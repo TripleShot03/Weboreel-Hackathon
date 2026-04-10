@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Lost in the Jungle</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;900&family=IM+Fell+English:ital@0;1&display=swap');
+
+:root {
+  --jungle-dark:   #030d05;
+  --jungle-deep:   #071a08;
+  --jungle-mid:    #0d2e10;
+  --jungle-green:  #1a5c1e;
+  --leaf-bright:   #2d8c34;
+  --neon-green:    #39ff6a;
+  --gold:          #c8a84b;
+  --fog-color:     rgba(80,160,60,0.07);
+  --text-light:    #d4f0c8;
+  --text-dim:      #7aab72;
+  --river-blue:    #0d4f7a;
+  --mountain-grey: #3a3a4a;
+  --cave-black:    #08050e;
+}
+
+*{margin:0;padding:0;box-sizing:border-box;}
+
+html,body{
+  width:100%;height:100%;
+  overflow:hidden;
+  background:var(--jungle-dark);
+  font-family:'IM Fell English',Georgia,serif;
+  color:var(--text-light);
+  cursor:default;
+}
+
+/* ══════════ CANVAS LAYER ══════════ */
+#bg-canvas{
+  position:fixed;inset:0;
+  z-index:0;pointer-events:none;
+}
+
+/* ══════════ FOG LAYERS ══════════ */
+.fog{
+  position:fixed;inset:0;
+  pointer-events:none;z-index:1;
+  background:radial-gradient(ellipse 120% 40% at 50% 100%, rgba(30,80,20,0.18) 0%, transparent 70%);
+  animation:fogDrift 18s ease-in-out infinite alternate;
+}
+.fog2{
+  position:fixed;inset:0;
+  pointer-events:none;z-index:1;
+  background:radial-gradient(ellipse 100% 30% at 30% 60%, rgba(40,100,30,0.12) 0%, transparent 65%);
+  animation:fogDrift2 24s ease-in-out infinite alternate;
+}
+@keyframes fogDrift  {from{transform:translateX(-6%) scaleY(1);}  to{transform:translateX(6%)  scaleY(1.1);}}
+@keyframes fogDrift2 {from{transform:translateX(8%)  scaleY(0.95);}to{transform:translateX(-8%) scaleY(1.05);}}
+
+/* ══════════ LEAF OVERLAY ══════════ */
+.leaf-layer{
+  position:fixed;inset:0;pointer-events:none;z-index:2;
+  overflow:hidden;
+}
+.leaf{
+  position:absolute;
+  width:clamp(60px,12vw,140px);
+  opacity:0.75;
+  animation:leafSway ease-in-out infinite;
+  transform-origin:top center;
+}
+@keyframes leafSway{
+  0%,100%{transform:rotate(-6deg);}
+  50%    {transform:rotate(6deg);}
+}
+.leaf-tl{top:-10px;left:-10px; animation-duration:6s;}
+.leaf-tr{top:-10px;right:-10px;transform:scaleX(-1); animation-duration:7.5s;}
+.leaf-bl{bottom:-10px;left:-10px; animation-duration:8s;transform-origin:bottom left;}
+.leaf-br{bottom:-10px;right:-10px;transform:scaleX(-1); animation-duration:5.5s;transform-origin:bottom right;}
+.leaf-tm{top:-10px;left:42%; animation-duration:9s;}
+
+/* ══════════ FIREFLIES ══════════ */
+.firefly{
+  position:fixed;
+  width:5px;height:5px;
+  border-radius:50%;
+  background:#ffe060;
+  box-shadow:0 0 8px 3px rgba(255,220,60,.7);
+  pointer-events:none;z-index:3;
+  animation:ffMove ease-in-out infinite, ffBlink ease-in-out infinite;
+}
+@keyframes ffMove{
+  0%  {transform:translate(0,0);}
+  25% {transform:translate(30px,-50px);}
+  50% {transform:translate(-20px,-20px);}
+  75% {transform:translate(15px,-70px);}
+  100%{transform:translate(0,0);}
+}
+@keyframes ffBlink{0%,100%{opacity:1;}50%{opacity:.05;}}
+
+/* ══════════ ANIMALS ══════════ */
+.animal{
+  position:fixed;
+  font-size:clamp(1.5rem,4vw,2.4rem);
+  pointer-events:none;z-index:4;
+  opacity:0;
+  animation:animalAppear 4s ease forwards;
+}
+@keyframes animalAppear{
+  0%  {opacity:0;transform:translateX(30px);}
+  15% {opacity:0.85;}
+  80% {opacity:0.85;}
+  100%{opacity:0;transform:translateX(-10px);}
+}
+
+/* ══════════ SCENES ══════════ */
+.scene{
+  position:fixed;inset:0;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  z-index:10;
+  padding:clamp(1rem,4vw,2.5rem);
+  opacity:0;pointer-events:none;
+  transition:opacity 1.4s ease;
+}
+.scene.active{opacity:1;pointer-events:all;}
+
+/* ── OPENING BG ── */
+#scene-open{
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(20,80,15,0.5) 0%,transparent 55%),
+    radial-gradient(ellipse at 20% 80%, rgba(10,60,10,0.4) 0%,transparent 50%),
+    linear-gradient(180deg, #020a03 0%, #041408 40%, #020a03 100%);
+}
+
+/* ── RIVER BG ── */
+#scene-river{
+  background:
+    radial-gradient(ellipse at 50% 80%, rgba(0,80,140,0.6) 0%, transparent 55%),
+    radial-gradient(ellipse at 80% 20%, rgba(10,80,10,0.4) 0%, transparent 50%),
+    linear-gradient(180deg,#020e08 0%,#041a0c 60%,#030d18 100%);
+}
+
+/* ── MOUNTAIN BG ── */
+#scene-mountain{
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(200,180,100,0.3) 0%,transparent 40%),
+    radial-gradient(ellipse at 30% 60%, rgba(60,60,80,0.5) 0%,transparent 50%),
+    linear-gradient(180deg,#0a0a14 0%,#141428 50%,#0a0a10 100%);
+}
+
+/* ── CAVE BG ── */
+#scene-cave{
+  background:
+    radial-gradient(ellipse at 50% 60%, rgba(80,0,140,0.3) 0%,transparent 45%),
+    radial-gradient(ellipse at 50% 50%, rgba(30,0,60,0.4) 0%,transparent 60%),
+    linear-gradient(180deg,#030008 0%,#08000f 60%,#020008 100%);
+}
+
+/* ══════════ SCENE CONTENT ══════════ */
+.scene-inner{
+  max-width:680px;width:100%;
+  text-align:center;
+  position:relative;z-index:5;
+}
+
+.scene-icon{
+  font-size:clamp(3rem,10vw,5.5rem);
+  margin-bottom:1.2rem;
+  display:block;
+  animation:iconFloat 4s ease-in-out infinite;
+  filter:drop-shadow(0 0 18px rgba(60,220,80,0.4));
+}
+@keyframes iconFloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-12px);}}
+
+.scene-title{
+  font-family:'Cinzel',serif;
+  font-size:clamp(1.3rem,5vw,2.8rem);
+  font-weight:900;
+  letter-spacing:0.06em;
+  margin-bottom:1rem;
+  text-shadow:0 0 30px rgba(60,255,80,0.3);
+  color:#c8f0c0;
+}
+
+.scene-text{
+  font-family:'IM Fell English',serif;
+  font-size:clamp(0.9rem,2.5vw,1.2rem);
+  line-height:1.85;
+  color:var(--text-light);
+  margin-bottom:2rem;
+  min-height:4em;
+}
+
+/* typewriter cursor */
+.cursor{
+  display:inline-block;
+  width:2px;height:1.1em;
+  background:var(--neon-green);
+  vertical-align:text-bottom;
+  animation:blink 0.8s step-end infinite;
+}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0;}}
+
+/* ══════════ BUTTONS ══════════ */
+.btn-group{
+  display:flex;flex-wrap:wrap;
+  gap:0.8rem;justify-content:center;
+  margin-top:0.5rem;
+}
+
+.choice-btn{
+  font-family:'Cinzel',serif;
+  font-size:clamp(0.7rem,1.8vw,0.9rem);
+  letter-spacing:0.08em;
+  padding:0.85em 1.6em;
+  border:1px solid rgba(60,220,80,0.4);
+  border-radius:3px;
+  background:rgba(10,40,12,0.7);
+  color:#a8f0b0;
+  cursor:pointer;
+  backdrop-filter:blur(8px);
+  transition:all 0.25s;
+  text-shadow:0 0 10px rgba(60,255,80,0.3);
+  box-shadow:0 0 14px rgba(20,160,40,0.15), inset 0 0 12px rgba(0,0,0,0.4);
+}
+.choice-btn:hover,.choice-btn:focus{
+  background:rgba(20,80,25,0.9);
+  border-color:rgba(60,255,80,0.8);
+  color:#e0ffe4;
+  box-shadow:0 0 28px rgba(40,220,60,0.4), inset 0 0 14px rgba(10,80,10,0.5);
+  transform:translateY(-3px) scale(1.03);
+  outline:none;
+}
+
+.start-btn{
+  font-family:'Cinzel',serif;
+  font-size:clamp(0.85rem,2.5vw,1.05rem);
+  letter-spacing:0.15em;
+  text-transform:uppercase;
+  padding:1em 2.8em;
+  border:2px solid var(--gold);
+  border-radius:3px;
+  background:linear-gradient(135deg, rgba(30,20,5,0.9), rgba(60,40,10,0.7));
+  color:var(--gold);
+  cursor:pointer;
+  box-shadow:0 0 30px rgba(200,168,76,0.35), inset 0 0 16px rgba(0,0,0,0.5);
+  transition:all 0.3s;
+  text-shadow:0 0 12px rgba(255,200,60,0.4);
+  margin-top:1rem;
+}
+.start-btn:hover{
+  background:linear-gradient(135deg, rgba(60,40,5,0.95), rgba(100,70,10,0.8));
+  box-shadow:0 0 50px rgba(220,180,80,0.5), inset 0 0 16px rgba(0,0,0,0.4);
+  transform:translateY(-3px) scale(1.04);
+  color:#ffe090;
+}
+
+.restart-btn{
+  font-family:'Cinzel',serif;
+  font-size:clamp(0.75rem,2vw,0.92rem);
+  letter-spacing:0.1em;
+  padding:0.9em 2em;
+  border:1px solid rgba(200,168,76,0.5);
+  border-radius:3px;
+  background:rgba(20,10,0,0.8);
+  color:var(--gold);
+  cursor:pointer;
+  transition:all 0.25s;
+  box-shadow:0 0 20px rgba(200,168,76,0.2);
+  backdrop-filter:blur(8px);
+}
+.restart-btn:hover{
+  border-color:var(--gold);
+  box-shadow:0 0 36px rgba(220,180,60,0.4);
+  transform:translateY(-2px);
+  color:#ffe090;
+}
+
+/* ══════════ OUTCOME BADGE ══════════ */
+.outcome-badge{
+  display:inline-block;
+  font-family:'Cinzel',serif;
+  font-size:clamp(0.65rem,1.6vw,0.8rem);
+  letter-spacing:0.2em;
+  text-transform:uppercase;
+  padding:0.4em 1.2em;
+  border-radius:2px;
+  margin-bottom:1.2rem;
+}
+.badge-survive {background:rgba(20,120,30,0.4);border:1px solid rgba(60,200,60,0.5);color:#80ff90;}
+.badge-escape  {background:rgba(20,60,140,0.4);border:1px solid rgba(80,140,255,0.5);color:#90c0ff;}
+.badge-mystery {background:rgba(80,0,120,0.4);border:1px solid rgba(160,60,255,0.5);color:#d090ff;}
+
+/* ══════════ PATH-SPECIFIC ANIMATIONS ══════════ */
+
+/* RIVER — flowing water ripples */
+.river-canvas{
+  position:fixed;bottom:0;left:0;right:0;
+  height:30vh;pointer-events:none;z-index:2;
+}
+
+/* MOUNTAIN — clouds */
+.cloud{
+  position:fixed;
+  font-size:clamp(2rem,6vw,4rem);
+  pointer-events:none;z-index:2;
+  opacity:0.35;
+  animation:cloudDrift linear infinite;
+}
+@keyframes cloudDrift{from{transform:translateX(-20vw);}to{transform:translateX(120vw);}}
+
+/* MOUNTAIN — lightning flash */
+.lightning{
+  position:fixed;inset:0;
+  background:rgba(180,200,255,0.25);
+  pointer-events:none;z-index:4;
+  opacity:0;
+  animation:lightningFlash 7s ease-in-out infinite;
+}
+@keyframes lightningFlash{
+  0%,94%,98%,100%{opacity:0;}
+  95%,97%{opacity:1;}
+}
+
+/* CAVE — flicker overlay */
+.cave-flicker{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,0.4);
+  pointer-events:none;z-index:3;
+  animation:flicker 0.14s step-end infinite;
+}
+@keyframes flicker{
+  0%,100%{opacity:0.1;}
+  33%    {opacity:0.4;}
+  66%    {opacity:0.05;}
+}
+
+/* CAVE — crystal glow */
+.crystal{
+  position:fixed;
+  font-size:clamp(1.2rem,4vw,2.2rem);
+  pointer-events:none;z-index:3;
+  animation:crystalPulse ease-in-out infinite;
+}
+@keyframes crystalPulse{
+  0%,100%{filter:drop-shadow(0 0 8px #a040ff) drop-shadow(0 0 20px #6000c0);}
+  50%    {filter:drop-shadow(0 0 18px #d080ff) drop-shadow(0 0 40px #8020ff);}
+}
+
+/* CAVE — bat */
+.bat{
+  position:fixed;
+  font-size:clamp(1rem,3vw,1.8rem);
+  pointer-events:none;z-index:4;
+  animation:batFly ease-in-out infinite;
+}
+@keyframes batFly{
+  0%  {transform:translate(0,0) rotate(0deg);}
+  25% {transform:translate(40px,-30px) rotate(-10deg);}
+  50% {transform:translate(-20px,-60px) rotate(8deg);}
+  75% {transform:translate(30px,-40px) rotate(-5deg);}
+  100%{transform:translate(0,0) rotate(0deg);}
+}
+
+/* RIVER — birds */
+.bird{
+  position:fixed;
+  font-size:clamp(1rem,3vw,1.6rem);
+  pointer-events:none;z-index:4;
+  animation:birdFly linear infinite;
+}
+@keyframes birdFly{
+  from{transform:translateX(-15vw) translateY(0);}
+  to  {transform:translateX(115vw) translateY(-20px);}
+}
+
+/* ══════════ MUTE BTN ══════════ */
+#mute-btn{
+  position:fixed;
+  bottom:1.2rem;right:1.2rem;
+  z-index:200;
+  background:rgba(0,0,0,0.45);
+  border:1px solid rgba(255,255,255,0.15);
+  border-radius:50%;
+  width:44px;height:44px;
+  display:none;
+  align-items:center;justify-content:center;
+  cursor:pointer;
+  font-size:1.2rem;
+  color:white;
+  backdrop-filter:blur(8px);
+  transition:background 0.2s,transform 0.2s;
+}
+#mute-btn.show{display:flex;}
+#mute-btn:hover{background:rgba(0,0,0,0.7);transform:scale(1.1);}
+
+/* ══════════ CHAPTER LABEL ══════════ */
+.chapter{
+  font-family:'Cinzel',serif;
+  font-size:clamp(0.6rem,1.4vw,0.75rem);
+  letter-spacing:0.35em;
+  text-transform:uppercase;
+  color:var(--text-dim);
+  margin-bottom:0.6rem;
+  opacity:0.8;
+}
+
+/* ══════════ DIVIDER ══════════ */
+.divider{
+  width:80px;height:1px;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent);
+  margin:1rem auto;
+}
+
+/* ══════════ SCREEN FLASH ══════════ */
+#flash{
+  position:fixed;inset:0;
+  background:rgba(20,80,20,0.6);
+  opacity:0;pointer-events:none;
+  z-index:150;
+  transition:opacity 0.2s;
+}
+#flash.active{opacity:1;}
+
+/* ══════════ RESPONSIVE ══════════ */
+@media(max-width:480px){
+  .choice-btn{padding:.8em 1em;font-size:.72rem;}
+  .start-btn {padding:.9em 2em;}
+}
+</style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+
+<!-- FOG -->
+<div class="fog"></div>
+<div class="fog2"></div>
+
+<!-- JUNGLE LEAF FRAMES -->
+<div class="leaf-layer" id="leaf-layer">
+  <svg class="leaf leaf-tl" viewBox="0 0 140 160" xmlns="http://www.w3.org/2000/svg">
+    <path d="M10,150 Q20,40 120,10 Q80,60 90,150 Z" fill="#1a5c1e" opacity="0.9"/>
+    <path d="M10,150 Q20,40 120,10" fill="none" stroke="#2d8c34" stroke-width="2" opacity="0.5"/>
+    <path d="M40,140 Q50,80 100,30" fill="none" stroke="#2d8c34" stroke-width="1" opacity="0.4"/>
+  </svg>
+  <svg class="leaf leaf-tr" viewBox="0 0 140 160" xmlns="http://www.w3.org/2000/svg">
+    <path d="M10,150 Q20,40 120,10 Q80,60 90,150 Z" fill="#163d18" opacity="0.85"/>
+    <path d="M10,150 Q20,40 120,10" fill="none" stroke="#2d8c34" stroke-width="2" opacity="0.4"/>
+  </svg>
+  <svg class="leaf leaf-bl" viewBox="0 0 140 160" xmlns="http://www.w3.org/2000/svg" style="transform:rotate(160deg) scaleX(-1)">
+    <path d="M10,150 Q20,40 120,10 Q80,60 90,150 Z" fill="#1a5c1e" opacity="0.8"/>
+  </svg>
+  <svg class="leaf leaf-br" viewBox="0 0 140 160" xmlns="http://www.w3.org/2000/svg" style="transform:rotate(200deg)">
+    <path d="M10,150 Q20,40 120,10 Q80,60 90,150 Z" fill="#163d18" opacity="0.8"/>
+  </svg>
+  <svg class="leaf leaf-tm" viewBox="0 0 140 160" xmlns="http://www.w3.org/2000/svg">
+    <path d="M10,150 Q20,40 120,10 Q80,60 90,150 Z" fill="#1e6622" opacity="0.7"/>
+  </svg>
+</div>
+
+<div id="flash"></div>
+
+<!-- ═══════════════════════════════════
+     SCENE 1 — OPENING
+═══════════════════════════════════ -->
+<div class="scene active" id="scene-open">
+  <div class="scene-inner">
+    <span class="scene-icon">🌿</span>
+    <div class="chapter">Chapter I</div>
+    <h1 class="scene-title">Lost in the Jungle</h1>
+    <div class="divider"></div>
+    <p class="scene-text" id="open-text"></p>
+    <div class="btn-group" id="open-btns" style="opacity:0;transition:opacity 1s;">
+      <button class="start-btn" onclick="showDecision()">⚔ Begin Survival ⚔</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════
+     SCENE 2 — DECISION
+═══════════════════════════════════ -->
+<div class="scene" id="scene-decision">
+  <div class="scene-inner">
+    <span class="scene-icon">🧭</span>
+    <div class="chapter">Choose Your Path</div>
+    <h1 class="scene-title">What Will You Do?</h1>
+    <div class="divider"></div>
+    <p class="scene-text" id="decision-text"></p>
+    <div class="btn-group">
+      <button class="choice-btn" onclick="goPath('river')">🌊 Follow the River</button>
+      <button class="choice-btn" onclick="goPath('mountain')">⛰ Climb the Mountain</button>
+      <button class="choice-btn" onclick="goPath('cave')">🕳 Enter the Cave</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════
+     SCENE 3 — RIVER
+═══════════════════════════════════ -->
+<div class="scene" id="scene-river">
+  <canvas class="river-canvas" id="river-canvas"></canvas>
+  <div class="scene-inner">
+    <span class="scene-icon">🌊</span>
+    <div class="chapter">Path of the River</div>
+    <span class="outcome-badge badge-survive">✦ You Survive ✦</span>
+    <h1 class="scene-title">The Ancient Village</h1>
+    <div class="divider"></div>
+    <p class="scene-text" id="river-text"></p>
+    <div class="btn-group">
+      <button class="restart-btn" onclick="restart()">↺ Play Again – Choose a Different Path</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════
+     SCENE 4 — MOUNTAIN
+═══════════════════════════════════ -->
+<div class="scene" id="scene-mountain">
+  <div class="lightning"></div>
+  <div class="scene-inner">
+    <span class="scene-icon">🚁</span>
+    <div class="chapter">Path of the Mountain</div>
+    <span class="outcome-badge badge-escape">✦ You Escape ✦</span>
+    <h1 class="scene-title">The Rescue Signal</h1>
+    <div class="divider"></div>
+    <p class="scene-text" id="mountain-text"></p>
+    <div class="btn-group">
+      <button class="restart-btn" onclick="restart()">↺ Play Again – Choose a Different Path</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════
+     SCENE 5 — CAVE
+═══════════════════════════════════ -->
+<div class="scene" id="scene-cave">
+  <div class="cave-flicker" id="cave-flicker"></div>
+  <div class="scene-inner">
+    <span class="scene-icon">💎</span>
+    <div class="chapter">Path of the Cave</div>
+    <span class="outcome-badge badge-mystery">✦ Mystery Ending ✦</span>
+    <h1 class="scene-title">The Glowing Crystals</h1>
+    <div class="divider"></div>
+    <p class="scene-text" id="cave-text"></p>
+    <div class="btn-group">
+      <button class="restart-btn" onclick="restart()">↺ Play Again – Choose a Different Path</button>
+    </div>
+  </div>
+</div>
+
+<!-- MUTE -->
+<button id="mute-btn" onclick="toggleMute()" title="Toggle music">🔊</button>
+
+<script>
+// ══════════════════════════════════════════════
+//  WEB AUDIO ENGINE
+// ══════════════════════════════════════════════
+let audioCtx, masterGain, muted = false;
+let activeOscs = [];
+
+function initAudio(){
+  if(audioCtx) return;
+  audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+  masterGain = audioCtx.createGain();
+  masterGain.gain.setValueAtTime(0.35, audioCtx.currentTime);
+  masterGain.connect(audioCtx.destination);
+}
+
+function stopAllAudio(){
+  activeOscs.forEach(n=>{try{n.stop();}catch(e){}});
+  activeOscs=[];
+}
+
+function createReverb(decay=3){
+  const conv=audioCtx.createConvolver();
+  const len=audioCtx.sampleRate*decay;
+  const buf=audioCtx.createBuffer(2,len,audioCtx.sampleRate);
+  for(let c=0;c<2;c++){
+    const d=buf.getChannelData(c);
+    for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/len,2.2);
+  }
+  conv.buffer=buf; return conv;
+}
+
+function playNote(freq,type,vol,startT,dur,rev){
+  const osc=audioCtx.createOscillator();
+  const g=audioCtx.createGain();
+  osc.type=type; osc.frequency.setValueAtTime(freq,startT);
+  g.gain.setValueAtTime(0,startT);
+  g.gain.linearRampToValueAtTime(vol,startT+0.3);
+  g.gain.setValueAtTime(vol,startT+dur-0.5);
+  g.gain.linearRampToValueAtTime(0,startT+dur);
+  osc.connect(g);
+  if(rev){g.connect(rev);rev.connect(masterGain);}else{g.connect(masterGain);}
+  osc.start(startT); osc.stop(startT+dur+0.1);
+  activeOscs.push(osc,g);
+}
+
+/* ── Jungle Opening: low ominous drones ── */
+function playJungleMusic(){
+  initAudio(); stopAllAudio();
+  const rev=createReverb(4);
+  const schedule=()=>{
+    if(muted) return;
+    const t=audioCtx.currentTime;
+    playNote(55,'sine',0.12,t,8,rev);
+    playNote(82,'triangle',0.05,t,8,rev);
+    playNote(41,'sine',0.08,t+0.5,7,rev);
+    // random cricket-like high tone
+    playNote(800+Math.random()*200,'sine',0.015,t+Math.random()*4,0.4,rev);
+    playNote(1200+Math.random()*400,'sine',0.010,t+Math.random()*6,0.3,rev);
+    setTimeout(schedule,7000);
+  };
+  schedule();
+}
+
+/* ── River: flowing bright tones ── */
+function playRiverMusic(){
+  stopAllAudio();
+  const rev=createReverb(3);
+  const notes=[261,329,392,523,659];
+  let ni=0;
+  const arp=()=>{
+    if(muted) return;
+    const t=audioCtx.currentTime;
+    playNote(notes[ni%notes.length],'sine',0.08,t,0.7,rev);
+    playNote(notes[ni%notes.length]*0.5,'triangle',0.05,t,1.2,rev);
+    ni++;
+    setTimeout(arp,350);
+  };
+  const drone=()=>{
+    if(muted) return;
+    playNote(65,'sine',0.06,audioCtx.currentTime,5,rev);
+    setTimeout(drone,4800);
+  };
+  arp(); drone();
+}
+
+/* ── Mountain: dramatic swell ── */
+function playMountainMusic(){
+  stopAllAudio();
+  const rev=createReverb(5);
+  const chords=[[98,123,147],[110,138,165],[130,164,196],[87,110,130]];
+  let ci=0;
+  const swell=()=>{
+    if(muted) return;
+    const t=audioCtx.currentTime;
+    chords[ci%chords.length].forEach((f,i)=>{
+      playNote(f,'sawtooth',0.06,t+i*0.1,5,rev);
+    });
+    // thunder rumble
+    playNote(30+Math.random()*10,'sine',0.09,t+Math.random()*4,0.8,rev);
+    ci++;
+    setTimeout(swell,4600);
+  };
+  swell();
+}
+
+/* ── Cave: eerie mystery pulses ── */
+function playCaveMusic(){
+  stopAllAudio();
+  const rev=createReverb(6);
+  const pulseFreqs=[110,138,82,92];
+  let pi=0;
+  const pulse=()=>{
+    if(muted) return;
+    const t=audioCtx.currentTime;
+    playNote(pulseFreqs[pi%pulseFreqs.length],'triangle',0.07,t,2.5,rev);
+    playNote(pulseFreqs[pi%pulseFreqs.length]*2,'sine',0.04,t+0.2,2.2,rev);
+    // drip
+    playNote(600+Math.random()*300,'sine',0.03,t+Math.random()*2,0.3,rev);
+    pi++;
+    setTimeout(pulse,2200);
+  };
+  pulse();
+}
+
+function toggleMute(){
+  muted=!muted;
+  if(masterGain) masterGain.gain.setTargetAtTime(muted?0:0.35,audioCtx.currentTime,0.1);
+  document.getElementById('mute-btn').textContent=muted?'🔇':'🔊';
+}
+
+// ══════════════════════════════════════════════
+//  CANVAS — STARS + PARTICLES
+// ══════════════════════════════════════════════
+const bgCanvas=document.getElementById('bg-canvas');
+const bgCtx=bgCanvas.getContext('2d');
+let bW,bH,particles=[];
+
+function resizeBg(){bW=bgCanvas.width=window.innerWidth;bH=bgCanvas.height=window.innerHeight;}
+window.addEventListener('resize',resizeBg); resizeBg();
+
+function makeParticles(){
+  particles=Array.from({length:80},()=>({
+    x:Math.random()*bW, y:Math.random()*bH,
+    r:Math.random()*1.4,
+    o:Math.random(),
+    s:0.003+Math.random()*0.007,
+    c:`hsl(${100+Math.random()*60},${60+Math.random()*30}%,${50+Math.random()*30}%)`
+  }));
+}
+makeParticles();
+
+function drawBg(){
+  bgCtx.clearRect(0,0,bW,bH);
+  particles.forEach(p=>{
+    p.o+=p.s; if(p.o>1||p.o<0) p.s*=-1;
+    bgCtx.globalAlpha=p.o*0.7;
+    bgCtx.fillStyle=p.c;
+    bgCtx.beginPath();
+    bgCtx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    bgCtx.fill();
+  });
+  bgCtx.globalAlpha=1;
+  requestAnimationFrame(drawBg);
+}
+drawBg();
+
+// ══════════════════════════════════════════════
+//  FIREFLIES
+// ══════════════════════════════════════════════
+function spawnFireflies(){
+  for(let i=0;i<25;i++){
+    const ff=document.createElement('div');
+    ff.className='firefly';
+    ff.style.cssText=`
+      left:${Math.random()*100}vw;
+      top:${20+Math.random()*65}vh;
+      animation-duration:${5+Math.random()*10}s,${1.5+Math.random()*2.5}s;
+      animation-delay:${-Math.random()*10}s,${-Math.random()*2.5}s;
+    `;
+    document.body.appendChild(ff);
+  }
+}
+spawnFireflies();
+
+// ══════════════════════════════════════════════
+//  RANDOM ANIMALS
+// ══════════════════════════════════════════════
+const animalEmojis=['🐒','🦜','🐍','🦋','🐊','🦎'];
+function spawnAnimal(){
+  const a=document.createElement('div');
+  a.className='animal';
+  a.textContent=animalEmojis[Math.floor(Math.random()*animalEmojis.length)];
+  a.style.cssText=`
+    left:${5+Math.random()*80}vw;
+    top:${15+Math.random()*65}vh;
+    animation-delay:0s;
+  `;
+  document.body.appendChild(a);
+  setTimeout(()=>a.remove(),4100);
+}
+setInterval(spawnAnimal, 5000+Math.random()*4000);
+
+// ══════════════════════════════════════════════
+//  RIVER CANVAS
+// ══════════════════════════════════════════════
+let riverAnimId;
+function startRiverCanvas(){
+  const rc=document.getElementById('river-canvas');
+  if(!rc) return;
+  rc.width=window.innerWidth; rc.height=rc.offsetHeight;
+  const rCtx=rc.getContext('2d');
+  let t=0;
+  const drawRiver=()=>{
+    rCtx.clearRect(0,0,rc.width,rc.height);
+    const h=rc.height;
+    for(let row=0;row<6;row++){
+      const y=h*(row/6)+t%(h/6);
+      const g=rCtx.createLinearGradient(0,y,rc.width,y+30);
+      g.addColorStop(0,'rgba(0,80,180,0)');
+      g.addColorStop(0.3,'rgba(10,120,220,0.25)');
+      g.addColorStop(0.7,'rgba(30,160,255,0.18)');
+      g.addColorStop(1,'rgba(0,80,180,0)');
+      rCtx.fillStyle=g;
+      for(let x=0;x<rc.width;x+=4){
+        const wave=Math.sin((x/rc.width)*Math.PI*6+t*0.04)*8;
+        rCtx.fillRect(x,y+wave,4,14);
+      }
+    }
+    t+=0.8;
+    riverAnimId=requestAnimationFrame(drawRiver);
+  };
+  drawRiver();
+}
+function stopRiverCanvas(){cancelAnimationFrame(riverAnimId);}
+
+// ══════════════════════════════════════════════
+//  SCENE DECORATIONS SPAWN / CLEAR
+// ══════════════════════════════════════════════
+function clearDecorations(){
+  document.querySelectorAll('.scene-deco').forEach(e=>e.remove());
+  stopRiverCanvas();
+}
+
+function addRiverDecos(){
+  startRiverCanvas();
+  for(let i=0;i<4;i++){
+    const b=document.createElement('div');
+    b.className='bird scene-deco';
+    b.textContent='🦅';
+    b.style.cssText=`top:${8+i*12}vh;animation-duration:${9+i*4}s;animation-delay:${-i*3}s;`;
+    document.body.appendChild(b);
+  }
+}
+
+function addMountainDecos(){
+  const clouds=['☁️','🌫️','☁️','🌩️'];
+  clouds.forEach((c,i)=>{
+    const d=document.createElement('div');
+    d.className='cloud scene-deco'; d.textContent=c;
+    d.style.cssText=`top:${5+i*12}vh;animation-duration:${22+i*8}s;animation-delay:${-i*5}s;`;
+    document.body.appendChild(d);
+  });
+}
+
+function addCaveDecos(){
+  // crystals
+  const cpos=[[10,70],[20,50],[80,60],[88,75],[50,80],[65,65]];
+  const cemoji=['💎','🔮','💜','💠','✨','🌟'];
+  cpos.forEach(([l,t],i)=>{
+    const d=document.createElement('div');
+    d.className='crystal scene-deco'; d.textContent=cemoji[i%cemoji.length];
+    d.style.cssText=`left:${l}vw;top:${t}vh;animation-duration:${2+i*0.5}s;animation-delay:${i*0.3}s;`;
+    document.body.appendChild(d);
+  });
+  // bats
+  for(let i=0;i<4;i++){
+    const b=document.createElement('div');
+    b.className='bat scene-deco'; b.textContent='🦇';
+    b.style.cssText=`left:${10+i*22}vw;top:${10+i*10}vh;animation-duration:${3+i}s;animation-delay:${-i*1.2}s;`;
+    document.body.appendChild(b);
+  }
+}
+
+// ══════════════════════════════════════════════
+//  TYPEWRITER
+// ══════════════════════════════════════════════
+function typeWriter(el, text, speed=38, cb){
+  let i=0;
+  el.innerHTML='';
+  const cursor=document.createElement('span');
+  cursor.className='cursor';
+  el.appendChild(cursor);
+  const t=setInterval(()=>{
+    el.insertBefore(document.createTextNode(text[i]),cursor);
+    i++;
+    if(i>=text.length){clearInterval(t);setTimeout(()=>{cursor.remove();if(cb)cb();},500);}
+  },speed);
+}
+
+// ══════════════════════════════════════════════
+//  SCENE SWITCHER
+// ══════════════════════════════════════════════
+function goScene(id){
+  document.querySelectorAll('.scene').forEach(s=>s.classList.remove('active'));
+  const fl=document.getElementById('flash');
+  fl.classList.add('active');
+  setTimeout(()=>{
+    fl.classList.remove('active');
+    document.getElementById(id).classList.add('active');
+  },300);
+}
+
+// ══════════════════════════════════════════════
+//  STORY FLOW
+// ══════════════════════════════════════════════
+const OPENING_TEXT = "You wake up on damp earth. The jungle presses in around you — towering trees, the hum of insects, the distant cry of something unknown. Your throat is dry. Your heart pounds. The last thing you remember is… nothing.";
+const DECISION_TEXT= "The jungle stretches endlessly. Through the trees you can hear a distant river, the scrape of stone against stone from a mountain ridge, and a cold draft rising from a dark opening in the rock. Every second matters.";
+const RIVER_TEXT   = "You follow the winding river for hours, slipping over mossy stones and ducking under ancient roots. Then — firelight. Smoke curling upward. Voices. You push through the last curtain of vines and find an ancient village, hidden for centuries beneath the canopy. The people welcome you with wide eyes and open fires. You are safe.";
+const MOUNTAIN_TEXT= "The climb is brutal — crumbling ledges, howling wind, lightning cracking across a bruised sky. But you push on until your fingers find the peak. You strip bark from a fallen branch and set it ablaze, holding it high against the storm. Far below, a beam of white light swings toward you — a rescue helicopter, searching. They have found you. You escape.";
+const CAVE_TEXT    = "The cave swallows daylight instantly. You feel your way along cold, slick walls until a faint purple glow pulses ahead. Crystals. Enormous, humming crystals, filling a cathedral of stone with eerie violet light. Beautiful. Ancient. And then — a sound. Something breathes in the dark behind you. Something that has been watching you since you stepped inside. You are not alone.";
+
+// Opening init
+window.addEventListener('DOMContentLoaded',()=>{
+  document.addEventListener('click', startMusic, {once:true});
+  document.addEventListener('touchstart', startMusic, {once:true});
+  setTimeout(()=>{
+    typeWriter(
+      document.getElementById('open-text'),
+      OPENING_TEXT, 35,
+      ()=>{ document.getElementById('open-btns').style.opacity='1'; }
+    );
+  }, 400);
+});
+
+function startMusic(){
+  playJungleMusic();
+  document.getElementById('mute-btn').classList.add('show');
+}
+
+function showDecision(){
+  goScene('scene-decision');
+  setTimeout(()=>{
+    typeWriter(document.getElementById('decision-text'), DECISION_TEXT, 28);
+  }, 500);
+}
+
+function goPath(path){
+  clearDecorations();
+  if(path==='river'){
+    goScene('scene-river');
+    addRiverDecos();
+    playRiverMusic();
+    setTimeout(()=>typeWriter(document.getElementById('river-text'),RIVER_TEXT,32),500);
+  } else if(path==='mountain'){
+    goScene('scene-mountain');
+    addMountainDecos();
+    playMountainMusic();
+    setTimeout(()=>typeWriter(document.getElementById('mountain-text'),MOUNTAIN_TEXT,32),500);
+  } else if(path==='cave'){
+    goScene('scene-cave');
+    addCaveDecos();
+    playCaveMusic();
+    setTimeout(()=>typeWriter(document.getElementById('cave-text'),CAVE_TEXT,30),500);
+  }
+}
+
+function restart(){
+  clearDecorations();
+  stopAllAudio();
+  goScene('scene-open');
+  setTimeout(()=>{
+    document.getElementById('open-btns').style.opacity='0';
+    typeWriter(
+      document.getElementById('open-text'),
+      OPENING_TEXT, 35,
+      ()=>{ document.getElementById('open-btns').style.opacity='1'; }
+    );
+    playJungleMusic();
+  },600);
+}
+</script>
+</body>
+</html>

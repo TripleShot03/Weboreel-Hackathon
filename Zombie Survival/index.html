@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>🧟 Zombie Survival — Decision Game</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Creepster&family=Special+Elite&family=Share+Tech+Mono&display=swap');
+
+:root {
+  --blood: #8b0000;
+  --blood-bright: #cc0000;
+  --neon-green: #39ff14;
+  --neon-green-dim: #1a7a08;
+  --warn: #ff6600;
+  --black: #050505;
+  --dark: #0d0d0d;
+  --fog: rgba(180,200,180,0.06);
+  --text: #c8c8b0;
+  --panel: rgba(0,0,0,0.82);
+}
+
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+html, body {
+  width:100%; height:100%;
+  background: var(--black);
+  color: var(--text);
+  font-family: 'Special Elite', serif;
+  overflow: hidden;
+  cursor: crosshair;
+  user-select: none;
+}
+
+/* ── BACKGROUND CITY ── */
+#bg-layer {
+  position: fixed; inset:0; z-index:0;
+  background:
+    radial-gradient(ellipse at 50% 100%, #1a0a00 0%, transparent 60%),
+    radial-gradient(ellipse at 20% 80%, #0a0000 0%, transparent 40%),
+    radial-gradient(ellipse at 80% 70%, #000a00 0%, transparent 40%),
+    linear-gradient(180deg, #000000 0%, #0a0505 40%, #050a05 70%, #000000 100%);
+}
+
+/* City skyline SVG-drawn via pseudo */
+#city-svg {
+  position: fixed; bottom:0; left:0; width:100%; z-index:1; pointer-events:none;
+}
+
+/* ── FOG ── */
+#fog-layer {
+  position: fixed; inset:0; z-index:2; pointer-events:none;
+  overflow:hidden;
+}
+.fog-strip {
+  position:absolute;
+  width:200%; height:clamp(80px,20vh,180px);
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(140,160,130,0.07) 20%,
+    rgba(160,180,150,0.1) 50%,
+    rgba(140,160,130,0.07) 80%,
+    transparent 100%);
+  border-radius:50%;
+  animation: fogDrift var(--spd,40s) linear infinite;
+  filter: blur(18px);
+}
+.fog-strip:nth-child(1){ bottom:5%; --spd:38s; animation-delay:0s; }
+.fog-strip:nth-child(2){ bottom:12%; --spd:52s; animation-delay:-15s; opacity:.7; }
+.fog-strip:nth-child(3){ bottom:20%; --spd:45s; animation-delay:-30s; opacity:.5; }
+.fog-strip:nth-child(4){ bottom:28%; --spd:60s; animation-delay:-8s; opacity:.35; }
+
+@keyframes fogDrift {
+  from { transform: translateX(-50%); }
+  to   { transform: translateX(0%); }
+}
+
+/* ── LIGHTNING ── */
+#lightning {
+  position:fixed; inset:0; z-index:3; pointer-events:none;
+  background: rgba(255,255,240,0);
+  transition: background 0.05s;
+}
+
+/* ── ZOMBIE SILHOUETTES ── */
+#zombies-layer {
+  position:fixed; bottom:0; left:0; width:100%; height:40%; z-index:4; pointer-events:none;
+}
+.z-silhouette {
+  position:absolute; bottom:0;
+  font-size:clamp(2rem,5vw,3.5rem);
+  opacity:0;
+  animation: zombieWalk var(--zspd,18s) linear infinite;
+  animation-delay: var(--zdly,0s);
+  filter: brightness(0) sepia(1) hue-rotate(80deg) saturate(0.4) brightness(0.25);
+}
+@keyframes zombieWalk {
+  0%   { transform:translateX(-80px) scaleX(1); opacity:0; }
+  5%   { opacity:.6; }
+  48%  { transform:translateX(calc(50vw - 40px)) scaleX(1); opacity:.6; }
+  50%  { transform:translateX(calc(50vw)) scaleX(-1); opacity:.6; }
+  95%  { opacity:.6; }
+  100% { transform:translateX(calc(100vw + 80px)) scaleX(-1); opacity:0; }
+}
+
+/* ── SCREEN SHAKE ── */
+@keyframes shake {
+  0%,100%{ transform:translate(0,0) rotate(0deg); }
+  10%{ transform:translate(-4px,-2px) rotate(-0.5deg); }
+  20%{ transform:translate(4px,2px) rotate(0.5deg); }
+  30%{ transform:translate(-6px,1px) rotate(-0.3deg); }
+  40%{ transform:translate(6px,-1px) rotate(0.3deg); }
+  50%{ transform:translate(-3px,3px) rotate(-0.2deg); }
+  60%{ transform:translate(3px,-3px) rotate(0.2deg); }
+  70%{ transform:translate(-2px,2px) rotate(0deg); }
+  80%{ transform:translate(2px,-2px) rotate(0deg); }
+}
+body.shake { animation: shake 0.5s ease; }
+
+/* ── BLOOD SPLATTER ── */
+#blood-overlay {
+  position:fixed; inset:0; z-index:98; pointer-events:none;
+  background: radial-gradient(ellipse at 50% 50%, rgba(150,0,0,0.0), transparent);
+  opacity:0; transition:opacity 0.2s;
+}
+#blood-overlay.active { opacity:1; }
+
+/* ── VIGNETTE ── */
+.vignette {
+  position:fixed; inset:0; z-index:5; pointer-events:none;
+  background: radial-gradient(ellipse at 50% 50%, transparent 40%, rgba(0,0,0,0.85) 100%);
+}
+
+/* ── SCANLINES ── */
+.scanlines {
+  position:fixed; inset:0; z-index:6; pointer-events:none;
+  background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.08) 3px, rgba(0,0,0,0.08) 4px);
+}
+
+/* ── GAME CONTAINER ── */
+#game {
+  position:fixed; inset:0; z-index:10;
+  display:flex; align-items:center; justify-content:center;
+  padding:16px;
+}
+
+.screen {
+  display:none;
+  flex-direction:column;
+  align-items:center;
+  text-align:center;
+  width:100%;
+  max-width:680px;
+  animation: screenIn 0.6s ease forwards;
+}
+.screen.active { display:flex; }
+
+@keyframes screenIn {
+  from { opacity:0; transform:translateY(16px) scale(0.97); }
+  to   { opacity:1; transform:translateY(0) scale(1); }
+}
+
+/* ── PANEL ── */
+.panel {
+  background: var(--panel);
+  border:1px solid rgba(139,0,0,0.4);
+  border-radius:4px;
+  padding:clamp(20px,4vw,36px) clamp(16px,4vw,36px);
+  width:100%;
+  box-shadow:
+    0 0 40px rgba(139,0,0,0.15),
+    0 0 80px rgba(0,0,0,0.6),
+    inset 0 0 60px rgba(0,0,0,0.4);
+  position:relative;
+  overflow:hidden;
+}
+.panel::before {
+  content:'';
+  position:absolute; inset:0;
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 10px,
+    rgba(139,0,0,0.015) 10px,
+    rgba(139,0,0,0.015) 11px
+  );
+  pointer-events:none;
+}
+
+/* ── TYPOGRAPHY ── */
+.game-title {
+  font-family:'Creepster', cursive;
+  font-size:clamp(2.2rem,8vw,4rem);
+  color:var(--blood-bright);
+  text-shadow:
+    0 0 20px rgba(200,0,0,0.8),
+    0 0 40px rgba(200,0,0,0.4),
+    2px 2px 0 #000;
+  letter-spacing:0.05em;
+  line-height:1.1;
+  margin-bottom:8px;
+}
+
+.subtitle {
+  font-family:'Share Tech Mono', monospace;
+  font-size:clamp(0.6rem,1.5vw,0.75rem);
+  color:var(--neon-green-dim);
+  letter-spacing:0.4em;
+  text-transform:uppercase;
+  margin-bottom:20px;
+}
+
+.story-text {
+  font-size:clamp(0.9rem,2.2vw,1.05rem);
+  line-height:1.8;
+  color:#bbb8a8;
+  margin-bottom:20px;
+  font-style:italic;
+  text-shadow: 1px 1px 3px #000;
+}
+
+.scene-label {
+  font-family:'Share Tech Mono', monospace;
+  font-size:clamp(0.55rem,1.2vw,0.68rem);
+  letter-spacing:0.5em;
+  color:var(--warn);
+  text-transform:uppercase;
+  margin-bottom:10px;
+  opacity:0.8;
+}
+
+.location-icon {
+  font-size:clamp(2.5rem,7vw,4rem);
+  margin-bottom:12px;
+  display:block;
+  filter:drop-shadow(0 0 12px rgba(200,0,0,0.5));
+  animation:iconPulse 2s ease-in-out infinite;
+}
+@keyframes iconPulse {
+  0%,100%{ transform:scale(1); }
+  50%{ transform:scale(1.06); }
+}
+
+/* ── TYPEWRITER ── */
+#tw-line1, #tw-line2, #tw-line3 {
+  display:block;
+  min-height:1.6em;
+  color:#bbb8a8;
+}
+.tw-cursor {
+  display:inline-block;
+  width:2px; height:1em;
+  background:var(--blood-bright);
+  vertical-align:middle;
+  margin-left:2px;
+  animation:blink 0.7s step-end infinite;
+}
+@keyframes blink{ 0%,100%{opacity:1;}50%{opacity:0;} }
+
+/* ── BUTTONS ── */
+.btn-group {
+  display:flex;
+  flex-direction:column;
+  gap:clamp(8px,2vw,12px);
+  width:100%;
+  margin-top:clamp(14px,3vw,24px);
+}
+
+.btn-choice {
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:clamp(12px,2.5vw,16px) clamp(14px,3vw,22px);
+  background:rgba(30,0,0,0.7);
+  border:1px solid rgba(139,0,0,0.5);
+  border-left:3px solid var(--blood-bright);
+  color:#c8c8b0;
+  font-family:'Special Elite', serif;
+  font-size:clamp(0.82rem,2vw,0.95rem);
+  cursor:pointer;
+  text-align:left;
+  transition:all 0.25s ease;
+  position:relative;
+  overflow:hidden;
+  letter-spacing:0.03em;
+  clip-path:polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+}
+.btn-choice::before {
+  content:'';
+  position:absolute; inset:0;
+  background:linear-gradient(90deg, rgba(139,0,0,0.3), transparent);
+  transform:translateX(-110%);
+  transition:transform 0.35s ease;
+}
+.btn-choice:hover {
+  border-color:var(--blood-bright);
+  color:#fff;
+  box-shadow:0 0 20px rgba(180,0,0,0.3), inset 0 0 10px rgba(139,0,0,0.1);
+  transform:translateX(3px);
+}
+.btn-choice:hover::before { transform:translateX(0); }
+
+.btn-choice .btn-icon { font-size:1.3em; flex-shrink:0; }
+
+.btn-start {
+  padding:clamp(14px,3vw,18px) clamp(28px,6vw,48px);
+  background:transparent;
+  border:2px solid var(--blood-bright);
+  color:var(--blood-bright);
+  font-family:'Creepster', cursive;
+  font-size:clamp(1rem,3vw,1.3rem);
+  letter-spacing:0.15em;
+  text-transform:uppercase;
+  cursor:pointer;
+  position:relative;
+  overflow:hidden;
+  transition:all 0.3s ease;
+  clip-path:polygon(12px 0%, 100% 0%, calc(100% - 12px) 100%, 0% 100%);
+  margin-top:20px;
+}
+.btn-start::before {
+  content:'';
+  position:absolute; inset:0;
+  background:var(--blood-bright);
+  transform:translateX(-110%);
+  transition:transform 0.4s ease;
+  z-index:-1;
+}
+.btn-start:hover { color:#fff; box-shadow:0 0 30px rgba(200,0,0,0.5); }
+.btn-start:hover::before { transform:translateX(0); }
+
+.btn-restart {
+  padding:clamp(12px,2.5vw,16px) clamp(24px,5vw,40px);
+  background:transparent;
+  border:1px solid var(--neon-green);
+  color:var(--neon-green);
+  font-family:'Share Tech Mono', monospace;
+  font-size:clamp(0.8rem,2vw,0.95rem);
+  letter-spacing:0.2em;
+  cursor:pointer;
+  transition:all 0.3s ease;
+  margin-top:16px;
+}
+.btn-restart:hover {
+  background:rgba(57,255,20,0.1);
+  box-shadow:0 0 20px rgba(57,255,20,0.3);
+}
+
+/* ── HEALTH BAR ── */
+.hud {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  width:100%;
+  margin-bottom:14px;
+  padding:8px 10px;
+  background:rgba(0,0,0,0.5);
+  border:1px solid rgba(80,0,0,0.4);
+  font-family:'Share Tech Mono', monospace;
+  font-size:clamp(0.6rem,1.3vw,0.72rem);
+}
+.health-wrap { display:flex; align-items:center; gap:8px; }
+.health-label { color:var(--blood-bright); letter-spacing:0.15em; }
+.health-bar-bg {
+  width:clamp(80px,18vw,120px); height:8px;
+  background:rgba(80,0,0,0.4);
+  border:1px solid rgba(139,0,0,0.5);
+  border-radius:2px;
+  overflow:hidden;
+}
+.health-bar-fill {
+  height:100%;
+  background:linear-gradient(90deg, var(--blood), var(--blood-bright));
+  transition:width 0.6s ease;
+  box-shadow:0 0 8px var(--blood-bright);
+}
+.threat-level { color:var(--warn); letter-spacing:0.1em; }
+
+/* ── ENDING CARDS ── */
+.ending-good  .panel { border-color:rgba(57,255,20,0.5); box-shadow:0 0 40px rgba(57,255,20,0.1),0 0 80px rgba(0,0,0,0.6); }
+.ending-warn  .panel { border-color:rgba(255,100,0,0.6); box-shadow:0 0 40px rgba(255,100,0,0.15),0 0 80px rgba(0,0,0,0.6); }
+.ending-dead  .panel { border-color:rgba(139,0,0,0.8);  box-shadow:0 0 40px rgba(200,0,0,0.2),0 0 80px rgba(0,0,0,0.6); }
+
+.ending-title {
+  font-family:'Creepster', cursive;
+  font-size:clamp(1.8rem,6vw,3rem);
+  margin-bottom:10px;
+}
+.ending-good  .ending-title { color:var(--neon-green); text-shadow:0 0 20px rgba(57,255,20,0.6); }
+.ending-warn  .ending-title { color:var(--warn);      text-shadow:0 0 20px rgba(255,100,0,0.6); }
+.ending-dead  .ending-title { color:var(--blood-bright); text-shadow:0 0 20px rgba(200,0,0,0.8); }
+
+.ending-icon { font-size:clamp(3rem,8vw,5rem); margin-bottom:14px; display:block; }
+
+/* ── ZOMBIE JUMPSCARE ── */
+#jumpscare {
+  position:fixed; inset:0; z-index:200;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(80,0,0,0.15);
+  opacity:0; pointer-events:none;
+  transition:opacity 0.1s;
+}
+#jumpscare.active { opacity:1; pointer-events:all; }
+#jumpscare-zombie {
+  font-size:clamp(8rem,25vw,16rem);
+  filter:drop-shadow(0 0 30px rgba(255,0,0,0.8));
+  animation:jumpscareAnim 0.4s ease;
+}
+@keyframes jumpscareAnim {
+  0%  { transform:scale(0.2) rotate(-10deg); opacity:0; }
+  60% { transform:scale(1.2) rotate(5deg); opacity:1; }
+  100%{ transform:scale(1) rotate(0deg); }
+}
+
+/* ── MUSIC BTN ── */
+#music-btn {
+  position:fixed; top:14px; right:14px; z-index:300;
+  width:42px; height:42px; border-radius:50%;
+  background:rgba(0,0,0,0.7);
+  border:1px solid rgba(139,0,0,0.6);
+  color:var(--blood-bright);
+  font-size:1rem;
+  cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  transition:all 0.3s;
+  backdrop-filter:blur(6px);
+}
+#music-btn:hover { box-shadow:0 0 16px rgba(200,0,0,0.4); border-color:var(--blood-bright); }
+
+/* ── DANGER PULSE ── */
+.danger-pulse {
+  animation:dangerPulse 1s ease-in-out infinite;
+}
+@keyframes dangerPulse {
+  0%,100%{ text-shadow:0 0 8px rgba(255,0,0,0.4); }
+  50%{ text-shadow:0 0 20px rgba(255,0,0,1), 0 0 40px rgba(255,0,0,0.5); }
+}
+
+/* ── CRACK OVERLAY ── */
+#crack-overlay {
+  position:fixed; inset:0; z-index:97; pointer-events:none;
+  opacity:0; transition:opacity 0.3s;
+  background:
+    linear-gradient(135deg, transparent 49.5%, rgba(139,0,0,0.15) 49.5%, rgba(139,0,0,0.15) 50.5%, transparent 50.5%),
+    linear-gradient(80deg, transparent 39.5%, rgba(100,0,0,0.1) 39.5%, rgba(100,0,0,0.1) 40.5%, transparent 40.5%);
+}
+#crack-overlay.active { opacity:1; }
+
+/* ── MOBILE SAFE ── */
+@media (max-height: 600px) {
+  .panel { padding:12px 14px; }
+  .location-icon { font-size:1.8rem; margin-bottom:6px; }
+  .story-text { margin-bottom:10px; font-size:0.82rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- BG layers -->
+<div id="bg-layer"></div>
+
+<svg id="city-svg" viewBox="0 0 1200 300" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- City silhouette -->
+  <g fill="#050505" opacity="0.97">
+    <!-- Buildings -->
+    <rect x="0"   y="180" width="60"  height="120"/>
+    <rect x="10"  y="140" width="30"  height="40"/>
+    <rect x="14"  y="120" width="8"   height="20"/>
+    <rect x="70"  y="160" width="80"  height="140"/>
+    <rect x="80"  y="100" width="40"  height="60"/>
+    <rect x="98"  y="80"  width="6"   height="20"/>
+    <rect x="160" y="190" width="50"  height="110"/>
+    <rect x="165" y="150" width="20"  height="40"/>
+    <rect x="220" y="170" width="70"  height="130"/>
+    <rect x="230" y="100" width="50"  height="70"/>
+    <rect x="252" y="70"  width="6"   height="30"/>
+    <rect x="300" y="200" width="40"  height="100"/>
+    <rect x="350" y="150" width="90"  height="150"/>
+    <rect x="360" y="80"  width="60"  height="70"/>
+    <rect x="386" y="50"  width="8"   height="30"/>
+    <rect x="450" y="180" width="55"  height="120"/>
+    <rect x="460" y="130" width="30"  height="50"/>
+    <rect x="515" y="160" width="75"  height="140"/>
+    <rect x="520" y="90"  width="40"  height="70"/>
+    <rect x="537" y="60"  width="6"   height="30"/>
+    <rect x="600" y="175" width="65"  height="125"/>
+    <rect x="605" y="110" width="35"  height="65"/>
+    <rect x="620" y="80"  width="6"   height="30"/>
+    <rect x="675" y="185" width="50"  height="115"/>
+    <rect x="680" y="145" width="30"  height="40"/>
+    <rect x="735" y="160" width="80"  height="140"/>
+    <rect x="745" y="90"  width="50"  height="70"/>
+    <rect x="768" y="60"  width="7"   height="30"/>
+    <rect x="825" y="195" width="45"  height="105"/>
+    <rect x="880" y="165" width="70"  height="135"/>
+    <rect x="890" y="100" width="40"  height="65"/>
+    <rect x="907" y="70"  width="6"   height="30"/>
+    <rect x="960" y="175" width="60"  height="125"/>
+    <rect x="965" y="125" width="35"  height="50"/>
+    <rect x="1030" y="155" width="80" height="145"/>
+    <rect x="1040" y="85"  width="50" height="70"/>
+    <rect x="1063" y="55"  width="7"  height="30"/>
+    <rect x="1120" y="180" width="80" height="120"/>
+    <rect x="1125" y="120" width="40" height="60"/>
+    <!-- Ground -->
+    <rect x="0" y="290" width="1200" height="10"/>
+  </g>
+  <!-- Broken windows glow -->
+  <g fill="rgba(255,100,0,0.15)">
+    <rect x="84"  y="110" width="6" height="8"/>
+    <rect x="94"  y="122" width="5" height="6"/>
+    <rect x="245" y="115" width="7" height="9"/>
+    <rect x="365" y="95"  width="8" height="10"/>
+    <rect x="528" y="100" width="6" height="8"/>
+    <rect x="750" y="105" width="7" height="9"/>
+    <rect x="895" y="110" width="6" height="8"/>
+    <rect x="1045" y="95" width="7" height="9"/>
+  </g>
+</svg>
+
+<div id="fog-layer">
+  <div class="fog-strip"></div>
+  <div class="fog-strip"></div>
+  <div class="fog-strip"></div>
+  <div class="fog-strip"></div>
+</div>
+
+<div id="lightning"></div>
+
+<div id="zombies-layer">
+  <div class="z-silhouette" style="--zspd:22s;--zdly:0s;left:-80px">🧟</div>
+  <div class="z-silhouette" style="--zspd:17s;--zdly:-7s;left:-80px">🧟‍♀️</div>
+  <div class="z-silhouette" style="--zspd:28s;--zdly:-14s;left:-80px">🧟</div>
+  <div class="z-silhouette" style="--zspd:20s;--zdly:-20s;left:-80px">🧟‍♀️</div>
+</div>
+
+<div class="vignette"></div>
+<div class="scanlines"></div>
+<div id="crack-overlay"></div>
+<div id="blood-overlay"></div>
+
+<!-- JUMPSCARE -->
+<div id="jumpscare"><div id="jumpscare-zombie">🧟</div></div>
+
+<!-- MUSIC -->
+<button id="music-btn" title="Toggle Music">🔇</button>
+
+<!-- ========== GAME SCREENS ========== -->
+<div id="game">
+
+  <!-- INTRO -->
+  <div class="screen active" id="screen-intro">
+    <div class="panel">
+      <div class="game-title">DEAD CHOICES</div>
+      <div class="subtitle">◆ zombie survival decision game ◆</div>
+      <div class="story-text">
+        <span id="tw-line1"><span class="tw-cursor"></span></span>
+        <span id="tw-line2"></span>
+        <span id="tw-line3"></span>
+      </div>
+      <button class="btn-start" id="btn-start" onclick="startGame()" style="display:none">
+        ☠ START SURVIVAL ☠
+      </button>
+    </div>
+  </div>
+
+  <!-- DECISION 1 -->
+  <div class="screen" id="screen-d1">
+    <div class="hud">
+      <div class="health-wrap">
+        <span class="health-label">HEALTH</span>
+        <div class="health-bar-bg"><div class="health-bar-fill" id="hp-bar" style="width:100%"></div></div>
+        <span id="hp-val" style="color:var(--blood-bright);font-size:0.65rem">100%</span>
+      </div>
+      <span class="threat-level">⚠ THREAT: CRITICAL</span>
+    </div>
+    <div class="panel">
+      <div class="scene-label">◆ city outskirts · day 1 ◆</div>
+      <span class="location-icon">🌆</span>
+      <div class="story-text">The city is overrun by the undead. Smoke fills the streets. You have seconds to decide before they close in.</div>
+      <div class="btn-group">
+        <button class="btn-choice" onclick="choose('hospital')">
+          <span class="btn-icon">🏥</span>
+          <div><strong>Run to the Hospital</strong><br><small style="color:#777">Supplies & medicine — but high infection risk</small></div>
+        </button>
+        <button class="btn-choice" onclick="choose('building')">
+          <span class="btn-icon">🏢</span>
+          <div><strong>Hide in a Building</strong><br><small style="color:#777">Stay low, stay quiet — but danger may find you</small></div>
+        </button>
+        <button class="btn-choice" onclick="choose('weapon')">
+          <span class="btn-icon">🔪</span>
+          <div><strong>Search for a Weapon</strong><br><small style="color:#777">Hit the abandoned streets — find something to fight</small></div>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- HOSPITAL SCENE -->
+  <div class="screen" id="screen-hospital">
+    <div class="hud">
+      <div class="health-wrap">
+        <span class="health-label">HEALTH</span>
+        <div class="health-bar-bg"><div class="health-bar-fill" id="hp-bar2" style="width:80%"></div></div>
+        <span style="color:var(--blood-bright);font-size:0.65rem">80%</span>
+      </div>
+      <span class="threat-level">⚠ THREAT: EXTREME</span>
+    </div>
+    <div class="panel">
+      <div class="scene-label">◆ abandoned hospital ◆</div>
+      <span class="location-icon">🏥</span>
+      <div class="story-text">Flickering lights. The smell of rot. You push through the emergency doors — infected patients stumble in the corridors, IVs still trailing from their arms.</div>
+      <div class="btn-group">
+        <button class="btn-choice" onclick="choose('fight')">
+          <span class="btn-icon">⚔️</span>
+          <div><strong>Fight Through the Zombies</strong><br><small style="color:#777">Use a fire extinguisher from the wall</small></div>
+        </button>
+        <button class="btn-choice" onclick="choose('escape')">
+          <span class="btn-icon">🚪</span>
+          <div><strong>Escape Through the Back Door</strong><br><small style="color:#777">Slip past the crowd undetected</small></div>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- BUILDING SCENE -->
+  <div class="screen" id="screen-building">
+    <div class="hud">
+      <div class="health-wrap">
+        <span class="health-label">HEALTH</span>
+        <div class="health-bar-bg"><div class="health-bar-fill" id="hp-bar3" style="width:90%"></div></div>
+        <span style="color:var(--blood-bright);font-size:0.65rem">90%</span>
+      </div>
+      <span class="threat-level">⚠ THREAT: HIGH</span>
+    </div>
+    <div class="panel">
+      <div class="scene-label">◆ abandoned apartment block ◆</div>
+      <span class="location-icon">🏚️</span>
+      <div class="story-text">Broken windows. Overturned furniture. You barricade the door — then you hear it. Heavy footsteps in the hallway. Getting louder.</div>
+      <div class="btn-group">
+        <button class="btn-choice" onclick="choose('silent')">
+          <span class="btn-icon">🤫</span>
+          <div><strong>Stay Completely Silent</strong><br><small style="color:#777">Press against the wall. Breathe slowly.</small></div>
+        </button>
+        <button class="btn-choice" onclick="choose('look')">
+          <span class="btn-icon">👁️</span>
+          <div><strong>Peek Through the Door Crack</strong><br><small style="color:#777">You need to know what's out there</small></div>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- WEAPON SCENE -->
+  <div class="screen" id="screen-weapon">
+    <div class="hud">
+      <div class="health-wrap">
+        <span class="health-label">HEALTH</span>
+        <div class="health-bar-bg"><div class="health-bar-fill" id="hp-bar4" style="width:75%"></div></div>
+        <span style="color:var(--blood-bright);font-size:0.65rem">75%</span>
+      </div>
+      <span class="threat-level">⚠ THREAT: HIGH</span>
+    </div>
+    <div class="panel">
+      <div class="scene-label">◆ abandoned street · wreckage zone ◆</div>
+      <span class="location-icon">🚗</span>
+      <div class="story-text">Overturned vehicles. Scattered supplies. You dig through the trunk of a crashed police cruiser and feel cold steel — a shotgun with two shells left.</div>
+      <div class="btn-group">
+        <button class="btn-choice" onclick="choose('armed')">
+          <span class="btn-icon">🔫</span>
+          <div><strong>Take the Shotgun — Push Forward</strong><br><small style="color:#777">Armed and dangerous. Head for the bridge.</small></div>
+        </button>
+        <button class="btn-choice" onclick="choose('flank')">
+          <span class="btn-icon">🗺️</span>
+          <div><strong>Scout an Alternate Route First</strong><br><small style="color:#777">Don't waste ammo. Use terrain wisely.</small></div>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ENDINGS -->
+  <div class="screen ending-good" id="screen-end-good">
+    <div class="panel">
+      <span class="ending-icon">✅</span>
+      <div class="ending-title">YOU SURVIVED</div>
+      <div class="subtitle">◆ survivor ending ◆</div>
+      <div class="story-text">Against all odds, you made it out. Past the burning district, over the bridge, and into the quarantine-free hills north of the city. A military helicopter spots your signal fire. You are one of the last survivors — and the story is not over yet.</div>
+      <button class="btn-restart" onclick="restartGame()">↺ PLAY AGAIN</button>
+    </div>
+  </div>
+
+  <div class="screen ending-warn" id="screen-end-warn">
+    <div class="panel">
+      <span class="ending-icon">⚠️</span>
+      <div class="ending-title danger-pulse">BARELY ALIVE</div>
+      <div class="subtitle">◆ danger ending ◆</div>
+      <div class="story-text">You escaped — barely. Bitten on your left arm in the struggle, you don't know yet if the wound is infected. You reach an empty farmhouse on the edge of town. You lock the door. You wait. You hope. But every hour the fever rises just a little more…</div>
+      <button class="btn-restart" onclick="restartGame()">↺ PLAY AGAIN</button>
+    </div>
+  </div>
+
+  <div class="screen ending-dead" id="screen-end-dead">
+    <div class="panel">
+      <span class="ending-icon">🧟</span>
+      <div class="ending-title danger-pulse">YOU TURNED</div>
+      <div class="subtitle">◆ zombie ending ◆</div>
+      <div class="story-text">The hunger came suddenly. The last thing you remembered as yourself was the sound of rain on broken glass — and then nothing. Now you roam the streets, just another silhouette in the fog. The city belongs to the dead.</div>
+      <button class="btn-restart" onclick="restartGame()">↺ PLAY AGAIN</button>
+    </div>
+  </div>
+
+</div><!-- #game -->
+
+<script>
+// ═══════════════════════════════════════════
+//  WEB AUDIO ENGINE — no external files
+// ═══════════════════════════════════════════
+let audioCtx = null, masterGain = null;
+let musicStarted = false, isMuted = false;
+const musicBtn = document.getElementById('music-btn');
+
+function initAudio() {
+  if (musicStarted) return;
+  musicStarted = true;
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    audioCtx = new AC();
+    masterGain = audioCtx.createGain();
+    masterGain.gain.value = 0.15;
+    masterGain.connect(audioCtx.destination);
+    buildHorrorMusic();
+    musicBtn.textContent = '🔊';
+  } catch(e) { console.warn('Audio init failed', e); }
+}
+
+function buildHorrorMusic() {
+  // Deep sub-bass drones
+  playDrone(36.7, 0.18, 0, 'sawtooth');
+  playDrone(55,   0.10, 1.5, 'sine');
+  playDrone(73.4, 0.06, 3,   'sawtooth');
+  // Mid tension
+  playDrone(110,  0.04, 4,   'sawtooth');
+  // High shimmer
+  playShimmerTone(440, 0.012, 6);
+  playShimmerTone(466, 0.010, 7);
+  // Heartbeat
+  scheduleHeartbeat();
+  // Dissonance hit
+  scheduleHit();
+}
+
+function playDrone(freq, gain, delay, type) {
+  if (!audioCtx) return;
+  const t = audioCtx.currentTime + delay;
+  const osc = audioCtx.createOscillator();
+  const lfo = audioCtx.createOscillator();
+  const lfoG = audioCtx.createGain();
+  const g = audioCtx.createGain();
+  const filt = audioCtx.createBiquadFilter();
+
+  osc.type = type || 'sawtooth';
+  osc.frequency.value = freq;
+  lfo.frequency.value = 0.05 + Math.random() * 0.05;
+  lfoG.gain.value = freq * 0.012;
+  filt.type = 'lowpass';
+  filt.frequency.value = freq * 5;
+  filt.Q.value = 1.5;
+
+  g.gain.value = 0;
+  g.gain.setTargetAtTime(gain, t, 2.5);
+
+  lfo.connect(lfoG);
+  lfoG.connect(osc.frequency);
+  osc.connect(filt);
+  filt.connect(g);
+  g.connect(masterGain);
+
+  lfo.start(t); osc.start(t);
+}
+
+function playShimmerTone(freq, gain, delay) {
+  if (!audioCtx) return;
+  const t = audioCtx.currentTime + delay;
+  const osc = audioCtx.createOscillator();
+  const lfo = audioCtx.createOscillator();
+  const lG = audioCtx.createGain();
+  const g = audioCtx.createGain();
+
+  osc.type = 'sine';
+  osc.frequency.value = freq;
+  lfo.frequency.value = 0.12;
+  lG.gain.value = freq * 0.01;
+  g.gain.value = 0;
+  g.gain.setTargetAtTime(gain, t, 3);
+
+  lfo.connect(lG); lG.connect(osc.frequency);
+  osc.connect(g); g.connect(masterGain);
+  lfo.start(t); osc.start(t);
+}
+
+function scheduleHeartbeat() {
+  if (!audioCtx) return;
+  let beat = 0;
+  setInterval(() => {
+    if (!audioCtx || isMuted) return;
+    const t = audioCtx.currentTime;
+    [0, 0.18].forEach(offset => {
+      const osc = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = 60;
+      osc.frequency.setTargetAtTime(40, t + offset, 0.1);
+      g.gain.value = 0.22;
+      g.gain.exponentialRampToValueAtTime(0.001, t + offset + 0.35);
+      osc.connect(g); g.connect(masterGain);
+      osc.start(t + offset);
+      osc.stop(t + offset + 0.4);
+    });
+    beat++;
+  }, beat % 8 === 0 ? 600 : 900);
+}
+
+function scheduleHit() {
+  if (!audioCtx) return;
+  const fireHit = () => {
+    if (!audioCtx || isMuted) return;
+    const t = audioCtx.currentTime;
+    const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.5, audioCtx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 2);
+    const src = audioCtx.createBufferSource();
+    src.buffer = buf;
+    const filt = audioCtx.createBiquadFilter();
+    filt.type = 'bandpass';
+    filt.frequency.value = 80 + Math.random() * 60;
+    filt.Q.value = 0.5;
+    const g = audioCtx.createGain();
+    g.gain.value = 0.08;
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+    src.connect(filt); filt.connect(g); g.connect(masterGain);
+    src.start(t); src.stop(t + 0.55);
+    setTimeout(fireHit, 8000 + Math.random() * 12000);
+  };
+  setTimeout(fireHit, 6000);
+}
+
+function playZombieGroan() {
+  if (!audioCtx || isMuted) return;
+  const t = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  const filt = audioCtx.createBiquadFilter();
+  osc.type = 'sawtooth';
+  osc.frequency.value = 90 + Math.random() * 30;
+  osc.frequency.setTargetAtTime(60, t + 0.3, 0.4);
+  filt.type = 'bandpass'; filt.frequency.value = 300; filt.Q.value = 2;
+  g.gain.value = 0.12;
+  g.gain.setTargetAtTime(0.001, t + 0.8, 0.3);
+  osc.connect(filt); filt.connect(g); g.connect(masterGain);
+  osc.start(t); osc.stop(t + 1.2);
+}
+
+function playDoorCreak() {
+  if (!audioCtx || isMuted) return;
+  const t = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  osc.type = 'sawtooth';
+  osc.frequency.value = 300;
+  osc.frequency.exponentialRampToValueAtTime(150, t + 0.4);
+  osc.frequency.exponentialRampToValueAtTime(80, t + 0.9);
+  g.gain.value = 0.05;
+  g.gain.setTargetAtTime(0.001, t + 0.8, 0.2);
+  osc.connect(g); g.connect(masterGain);
+  osc.start(t); osc.stop(t + 1.1);
+}
+
+function playWeaponPickup() {
+  if (!audioCtx || isMuted) return;
+  const t = audioCtx.currentTime;
+  [400, 600, 900, 1200].forEach((f, i) => {
+    const osc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = f;
+    g.gain.value = 0.06;
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.25 + i * 0.08);
+    osc.connect(g); g.connect(masterGain);
+    osc.start(t + i * 0.07);
+    osc.stop(t + 0.35 + i * 0.08);
+  });
+}
+
+function playJumpscare() {
+  if (!audioCtx || isMuted) return;
+  const t = audioCtx.currentTime;
+  [80, 160, 240, 320].forEach((f, i) => {
+    const osc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.value = f;
+    osc.frequency.exponentialRampToValueAtTime(f * 0.5, t + i * 0.06 + 0.3);
+    g.gain.value = 0.15;
+    g.gain.exponentialRampToValueAtTime(0.001, t + i * 0.06 + 0.4);
+    osc.connect(g); g.connect(masterGain);
+    osc.start(t + i * 0.04);
+    osc.stop(t + i * 0.06 + 0.5);
+  });
+}
+
+function toggleMute() {
+  if (!audioCtx) { initAudio(); return; }
+  isMuted = !isMuted;
+  if (masterGain) masterGain.gain.setTargetAtTime(isMuted ? 0 : 0.15, audioCtx.currentTime, 0.3);
+  musicBtn.textContent = isMuted ? '🔇' : '🔊';
+}
+
+musicBtn.addEventListener('click', toggleMute);
+
+// ═══════════════════════════════════════════
+//  VISUAL EFFECTS
+// ═══════════════════════════════════════════
+
+// Lightning
+function triggerLightning() {
+  const el = document.getElementById('lightning');
+  const intensity = Math.random();
+  el.style.background = `rgba(255,255,240,${0.04 + intensity * 0.08})`;
+  setTimeout(() => { el.style.background = 'rgba(255,255,240,0)'; }, 80);
+  if (intensity > 0.5) {
+    setTimeout(() => {
+      el.style.background = `rgba(255,255,240,${0.02 + intensity * 0.05})`;
+      setTimeout(() => { el.style.background = 'rgba(255,255,240,0)'; }, 60);
+    }, 140);
+  }
+}
+setInterval(triggerLightning, 3500 + Math.random() * 6000);
+setTimeout(() => setInterval(triggerLightning, 2500 + Math.random() * 4000), 1500);
+
+// Screen shake
+function shakeScreen() {
+  document.body.classList.add('shake');
+  setTimeout(() => document.body.classList.remove('shake'), 500);
+}
+
+// Blood flash
+function bloodFlash() {
+  const el = document.getElementById('blood-overlay');
+  el.style.background = 'radial-gradient(ellipse at 50% 50%, rgba(150,0,0,0.35), transparent)';
+  el.classList.add('active');
+  setTimeout(() => { el.classList.remove('active'); el.style.background = ''; }, 400);
+}
+
+// Crack
+function showCrack() {
+  const el = document.getElementById('crack-overlay');
+  el.classList.add('active');
+  setTimeout(() => el.classList.remove('active'), 1800);
+}
+
+// Jumpscare
+function doJumpscare(cb) {
+  playJumpscare();
+  shakeScreen();
+  bloodFlash();
+  const js = document.getElementById('jumpscare');
+  const jz = document.getElementById('jumpscare-zombie');
+  const emojis = ['🧟','🧟‍♀️','💀','🩸'];
+  jz.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+  js.classList.add('active');
+  setTimeout(() => {
+    js.classList.remove('active');
+    if (cb) cb();
+  }, 700);
+}
+
+// ═══════════════════════════════════════════
+//  TYPEWRITER
+// ═══════════════════════════════════════════
+const TW_LINES = [
+  "A deadly virus has turned most humans into zombies…",
+  "You are one of the few survivors.",
+  "Every decision you make determines your fate."
+];
+
+function typeWrite(lineIdx, charIdx, done) {
+  const ids = ['tw-line1','tw-line2','tw-line3'];
+  if (lineIdx >= TW_LINES.length) { done(); return; }
+  const el = document.getElementById(ids[lineIdx]);
+  const line = TW_LINES[lineIdx];
+  if (charIdx <= line.length) {
+    el.innerHTML = line.substring(0, charIdx) + (charIdx < line.length ? '<span class="tw-cursor"></span>' : '');
+    const delay = 35 + Math.random() * 25 + (line[charIdx - 1] === '.' ? 350 : 0);
+    setTimeout(() => typeWrite(lineIdx, charIdx + 1, done), delay);
+  } else {
+    el.innerHTML = line;
+    setTimeout(() => typeWrite(lineIdx + 1, 0, done), 500);
+  }
+}
+
+// ═══════════════════════════════════════════
+//  SCREEN MANAGEMENT
+// ═══════════════════════════════════════════
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const target = document.getElementById(id);
+  if (target) {
+    setTimeout(() => target.classList.add('active'), 50);
+  }
+}
+
+function transitionTo(id, withJumpscare, delay) {
+  delay = delay || 0;
+  setTimeout(() => {
+    if (withJumpscare) {
+      doJumpscare(() => showScreen(id));
+    } else {
+      showScreen(id);
+    }
+  }, delay);
+}
+
+// ═══════════════════════════════════════════
+//  GAME LOGIC
+// ═══════════════════════════════════════════
+function startGame() {
+  initAudio();
+  transitionTo('screen-d1', false);
+}
+
+function choose(path) {
+  initAudio();
+
+  switch(path) {
+    // ── FIRST DECISIONS ──
+    case 'hospital':
+      playDoorCreak();
+      transitionTo('screen-hospital', true, 200);
+      break;
+
+    case 'building':
+      transitionTo('screen-building', false, 100);
+      break;
+
+    case 'weapon':
+      playWeaponPickup();
+      transitionTo('screen-weapon', false, 100);
+      break;
+
+    // ── HOSPITAL PATHS ──
+    case 'fight':
+      playZombieGroan();
+      shakeScreen();
+      bloodFlash();
+      showCrack();
+      // Lucky survivor
+      transitionTo('screen-end-good', false, 1200);
+      break;
+
+    case 'escape':
+      playDoorCreak();
+      transitionTo('screen-end-warn', true, 600);
+      break;
+
+    // ── BUILDING PATHS ──
+    case 'silent':
+      // Tense pause, then safe
+      setTimeout(() => {
+        transitionTo('screen-end-good', false);
+      }, 400);
+      break;
+
+    case 'look':
+      // JUMPSCARE — zombie
+      doJumpscare(() => {
+        bloodFlash();
+        shakeScreen();
+        transitionTo('screen-end-dead', false);
+      });
+      break;
+
+    // ── WEAPON PATHS ──
+    case 'armed':
+      playWeaponPickup();
+      transitionTo('screen-end-good', false, 300);
+      break;
+
+    case 'flank':
+      // Gets ambushed
+      setTimeout(() => {
+        doJumpscare(() => {
+          shakeScreen();
+          transitionTo('screen-end-warn', false);
+        });
+      }, 800);
+      break;
+  }
+}
+
+function restartGame() {
+  initAudio();
+  // Reset typewriter
+  ['tw-line1','tw-line2','tw-line3'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = '';
+  });
+  document.getElementById('btn-start').style.display = 'none';
+  showScreen('screen-intro');
+
+  setTimeout(() => {
+    typeWrite(0, 0, () => {
+      document.getElementById('btn-start').style.display = 'inline-block';
+    });
+  }, 600);
+}
+
+// ═══════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    typeWrite(0, 0, () => {
+      document.getElementById('btn-start').style.display = 'inline-block';
+    });
+  }, 600);
+});
+
+// Touch to init audio
+document.addEventListener('touchstart', initAudio, { once: true });
+</script>
+</body>
+</html>

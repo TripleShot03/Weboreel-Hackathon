@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Curse of Black Isle</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Pirata+One&family=IM+Fell+English:ital@0;1&display=swap');
+
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --gold:#d4a017;--gold2:#ffe066;
+  --ink:#2a1508;--parch:#f0dba0;
+  --parch2:#e2c87a;--parch3:#c8a050;
+  --red:#8b1a1a;--green:#1a5e1a;
+}
+html,body{width:100%;height:100%;overflow:hidden;background:#04080e;font-family:'IM Fell English',Georgia,serif;color:var(--ink);}
+
+/* OCEAN */
+#ocean{position:fixed;inset:0;z-index:0;background:radial-gradient(ellipse at 70% 15%,rgba(255,200,80,0.12) 0%,transparent 45%),linear-gradient(180deg,#04080e 0%,#071525 50%,#04080e 100%);}
+.star{position:fixed;border-radius:50%;background:#fff;pointer-events:none;z-index:1;animation:twinkle ease-in-out infinite;}
+@keyframes twinkle{0%,100%{opacity:0.15;}50%{opacity:0.9;}}
+
+/* WAVE */
+.wave-bar{position:fixed;bottom:0;left:0;right:0;height:55px;z-index:2;pointer-events:none;overflow:hidden;}
+.wave-bar svg{width:200%;animation:waveMove 9s linear infinite;}
+@keyframes waveMove{from{transform:translateX(0);}to{transform:translateX(-50%);}}
+
+/* GULL */
+.gull{position:fixed;pointer-events:none;z-index:3;font-size:1.3rem;opacity:0.7;animation:gullFly linear infinite;}
+@keyframes gullFly{from{transform:translateX(-120px);}to{transform:translateX(110vw);}}
+
+/* SCREENS */
+.screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:10;padding:16px;opacity:0;pointer-events:none;transition:opacity 1s ease;}
+.screen.show{opacity:1;pointer-events:all;}
+
+/* CARD */
+.card{position:relative;width:100%;max-width:660px;background:linear-gradient(160deg,#f7e8b8 0%,#ecdfa0 40%,#dcc880 100%);border:3px solid #8b6030;border-radius:8px;padding:clamp(14px,4vw,32px);box-shadow:0 0 60px rgba(0,0,0,0.85),inset 0 0 40px rgba(139,96,48,0.12);max-height:92vh;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#8b6030 #f0dba0;}
+.card::-webkit-scrollbar{width:6px;}
+.card::-webkit-scrollbar-thumb{background:#8b6030;border-radius:3px;}
+.card::before,.card::after{content:'';position:absolute;width:55px;height:55px;pointer-events:none;}
+.card::before{top:0;left:0;background:radial-gradient(circle at 0% 0%,rgba(80,40,0,0.3),transparent 75%);}
+.card::after{bottom:0;right:0;background:radial-gradient(circle at 100% 100%,rgba(80,40,0,0.3),transparent 75%);}
+
+/* ROPE */
+.rope{height:7px;width:100%;border-radius:3px;background:repeating-linear-gradient(90deg,#8b6030 0,#8b6030 4px,#c8a050 4px,#c8a050 8px);opacity:0.45;margin:10px 0;}
+
+/* COMPASS */
+.compass-wrap{position:absolute;top:-18px;right:18px;z-index:20;}
+.compass{width:50px;height:50px;border-radius:50%;background:radial-gradient(circle,#f5e8c0 30%,#c8a050 70%,#7a5020 100%);border:2px solid #7a5020;display:flex;align-items:center;justify-content:center;font-size:1.4rem;box-shadow:0 0 12px rgba(0,0,0,0.5),0 0 25px rgba(212,160,23,0.25);animation:spin 14s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* TYPE */
+.lbl{font-family:'Pirata One',serif;font-size:clamp(0.58rem,1.3vw,0.7rem);letter-spacing:0.4em;text-transform:uppercase;color:var(--red);text-align:center;margin-bottom:4px;}
+.title{font-family:'Pirata One',serif;font-size:clamp(1.4rem,5vw,2.6rem);color:var(--ink);text-align:center;line-height:1.1;text-shadow:1px 1px 0 rgba(139,96,48,0.4);}
+.gold-title{color:var(--gold);text-shadow:0 0 20px rgba(255,200,40,0.7),1px 1px 0 rgba(80,40,0,0.5);animation:glow 2s ease-in-out infinite;}
+@keyframes glow{0%,100%{text-shadow:0 0 20px rgba(255,200,40,0.7),1px 1px 0 rgba(80,40,0,0.5);}50%{text-shadow:0 0 45px rgba(255,220,40,1),0 0 70px rgba(255,180,0,0.5),1px 1px 0 rgba(80,40,0,0.5);}}
+.skull-div{text-align:center;font-size:0.9rem;letter-spacing:0.4em;color:var(--parch3);margin:6px 0;}
+.story-text{font-family:'IM Fell English',serif;font-size:clamp(0.86rem,2.2vw,1.06rem);line-height:1.9;color:#3a2008;text-align:center;min-height:3em;margin:8px 0 14px;}
+
+/* DOTS */
+.dots{display:flex;gap:8px;justify-content:center;margin-bottom:12px;}
+.dot{width:11px;height:11px;border-radius:50%;background:var(--parch2);border:1px solid var(--parch3);transition:background 0.4s,box-shadow 0.4s;}
+.dot.lit{background:var(--gold);box-shadow:0 0 8px rgba(255,200,40,0.8);}
+
+/* BUTTONS */
+.btn-row{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:10px;}
+.btn{font-family:'Pirata One',serif;font-size:clamp(0.75rem,1.9vw,0.95rem);letter-spacing:0.05em;padding:0.72em 1.5em;border:2px solid #7a5020;border-radius:4px;background:linear-gradient(180deg,#f5e8b0,#ddb84a);color:var(--ink);cursor:pointer;box-shadow:2px 2px 0 #5a3010,0 0 10px rgba(0,0,0,0.2);transition:all 0.18s;}
+.btn:hover{background:linear-gradient(180deg,#ffe898,#c88c14);box-shadow:2px 2px 0 var(--ink),0 0 22px rgba(212,160,23,0.55);transform:translateY(-2px);}
+.btn:active{transform:translateY(1px);box-shadow:1px 1px 0 var(--ink);}
+.btn.big{font-size:clamp(0.85rem,2.5vw,1.05rem);padding:0.88em 2.2em;border-color:var(--gold);background:linear-gradient(180deg,#ffe898,#b87010);box-shadow:3px 3px 0 var(--ink),0 0 28px rgba(212,160,23,0.5);}
+
+/* MAP */
+#map-wrap{width:100%;margin:10px 0;border:2px solid #8b6030;border-radius:4px;overflow:hidden;background:rgba(26,74,110,0.15);}
+#map-wrap svg{width:100%;display:block;}
+.mpin{cursor:pointer;}
+.mpin:hover .mring{stroke:rgba(212,160,23,0.85);stroke-width:3;}
+.mring{fill:transparent;stroke:transparent;stroke-width:2;transition:stroke 0.2s;}
+
+/* SYMBOLS */
+.syms{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin:12px 0;}
+.sym{width:clamp(80px,20vw,108px);height:clamp(80px,20vw,108px);border:2px solid #7a5020;border-radius:6px;background:linear-gradient(135deg,#f5e8a0,#c8a040);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:clamp(2rem,6vw,3rem);box-shadow:3px 3px 0 #7a5020,0 0 10px rgba(0,0,0,0.2);transition:all 0.18s;}
+.sym span{font-family:'Pirata One',serif;font-size:0.65rem;color:#5a3a10;margin-top:3px;}
+.sym:hover{transform:translateY(-4px) scale(1.06);box-shadow:3px 3px 0 var(--ink),0 0 22px rgba(212,160,23,0.5);}
+.sym.wrong{animation:shake 0.5s;border-color:var(--red);background:linear-gradient(135deg,#f0c0a0,#c04030);}
+.sym.right{border-color:var(--green);background:linear-gradient(135deg,#d0f0b0,#70b840);animation:pop 0.4s;}
+@keyframes shake{0%,100%{transform:translateX(0);}20%,60%{transform:translateX(-7px);}40%,80%{transform:translateX(7px);}}
+@keyframes pop{0%{transform:scale(0.85);}60%{transform:scale(1.18);}100%{transform:scale(1);}}
+
+/* RIDDLE BTNS */
+.rb{font-family:'Pirata One',serif;font-size:clamp(0.75rem,2vw,0.92rem);padding:0.75em 1.4em;border:2px solid #7a5020;border-radius:4px;background:linear-gradient(180deg,#f5e8b0,#ddb84a);color:var(--ink);cursor:pointer;box-shadow:2px 2px 0 #5a3010;transition:all 0.18s;margin:4px;}
+.rb:hover{background:linear-gradient(180deg,#ffe898,#c88c14);box-shadow:2px 2px 0 var(--ink);transform:translateY(-2px);}
+.rb:disabled{opacity:0.5;cursor:not-allowed;transform:none;}
+
+/* ERROR */
+.err{font-family:'Pirata One',serif;color:var(--red);font-size:clamp(0.8rem,2vw,0.95rem);text-align:center;min-height:1.5em;margin-top:6px;}
+
+/* CHEST */
+.chest-box{position:relative;display:inline-block;margin:8px 0;}
+.chest-ico{font-size:clamp(4.5rem,15vw,8rem);display:block;filter:drop-shadow(0 0 22px rgba(255,200,40,0.6));animation:cpulse 2s ease-in-out infinite;}
+@keyframes cpulse{0%,100%{filter:drop-shadow(0 0 18px rgba(255,200,40,0.55));}50%{filter:drop-shadow(0 0 45px rgba(255,220,40,1)) drop-shadow(0 0 70px rgba(255,180,0,0.5));}}
+.chest-open{animation:cboom 0.7s ease forwards,cpulse 2s 0.7s infinite !important;}
+@keyframes cboom{0%{transform:scale(1);}35%{transform:scale(1.35) rotate(-6deg);}65%{transform:scale(1.1) rotate(3deg);}100%{transform:scale(1.18);}}
+.coin-burst{position:absolute;pointer-events:none;font-size:clamp(1rem,3vw,1.6rem);left:50%;top:50%;animation:coinfly 1s ease-out forwards;}
+@keyframes coinfly{0%{transform:translate(-50%,-50%) scale(0);opacity:1;}75%{opacity:1;}100%{transform:translate(var(--cx),var(--cy)) scale(1);opacity:0;}}
+
+/* GOLD PARTICLES */
+#gcanvas{position:fixed;inset:0;pointer-events:none;z-index:8;opacity:0;transition:opacity 0.6s;}
+#gcanvas.show{opacity:1;}
+
+/* FLASH */
+#flash{position:fixed;inset:0;pointer-events:none;z-index:50;background:rgba(255,210,60,0.3);opacity:0;transition:opacity 0.18s;}
+#flash.on{opacity:1;}
+
+/* MUTE */
+#mute{position:fixed;bottom:14px;right:14px;z-index:200;width:46px;height:46px;border-radius:50%;border:1px solid rgba(255,255,255,0.2);background:rgba(0,0,0,0.6);color:#fff;font-size:1.2rem;cursor:pointer;display:none;align-items:center;justify-content:center;backdrop-filter:blur(6px);transition:transform 0.2s,background 0.2s;}
+#mute.show{display:flex;}
+#mute:hover{transform:scale(1.1);background:rgba(0,0,0,0.8);}
+
+@media(max-width:440px){.btn{padding:0.65em 1em;font-size:0.78rem;}.title{font-size:1.35rem;}}
+</style>
+</head>
+<body>
+
+<div id="ocean"></div>
+<canvas id="gcanvas"></canvas>
+<div id="flash"></div>
+
+<div class="wave-bar">
+  <svg viewBox="0 0 1200 55" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+    <path d="M0,28 C80,10 160,46 240,28 C320,10 400,46 480,28 C560,10 640,46 720,28 C800,10 880,46 960,28 C1040,10 1120,46 1200,28 L1200,55 L0,55Z" fill="rgba(15,55,100,0.6)"/>
+    <path d="M0,38 C100,22 200,50 300,38 C400,22 500,50 600,38 C700,22 800,50 900,38 C1000,22 1100,50 1200,38 L1200,55 L0,55Z" fill="rgba(10,40,80,0.45)"/>
+  </svg>
+</div>
+
+<!-- ===== SCREEN 0: OPENING ===== -->
+<div class="screen show" id="s0">
+  <div class="card">
+    <div class="compass-wrap"><div class="compass">&#129517;</div></div>
+    <div class="rope"></div>
+    <div class="lbl">A Pirate Legend</div>
+    <h1 class="title">The Curse of<br>Black Isle</h1>
+    <div class="skull-div">&#9760; &middot; &middot; &#9760;</div>
+    <p class="story-text" id="t0"></p>
+    <div class="btn-row" id="b0" style="opacity:0;transition:opacity 0.9s;">
+      <button class="btn big" onclick="gotoMap()">&#9875; Start Treasure Hunt &#9875;</button>
+    </div>
+    <div class="rope"></div>
+  </div>
+</div>
+
+<!-- ===== SCREEN 1: MAP ===== -->
+<div class="screen" id="s1">
+  <div class="card">
+    <div class="compass-wrap"><div class="compass">&#129517;</div></div>
+    <div class="rope"></div>
+    <div class="lbl">Clue 1 of 3</div>
+    <h1 class="title">The Treasure Map</h1>
+    <div class="skull-div">&#9760; &middot; &middot; &#9760;</div>
+    <div class="dots">
+      <div class="dot lit"></div>
+      <div class="dot" id="d1"></div>
+      <div class="dot" id="d2"></div>
+      <div class="dot" id="d3"></div>
+    </div>
+    <p class="story-text" id="t1"></p>
+    <div id="map-wrap">
+      <svg viewBox="0 0 500 210" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <filter id="gf"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        </defs>
+        <rect width="500" height="210" fill="rgba(26,74,110,0.18)" rx="3"/>
+        <g stroke="rgba(100,160,220,0.22)" stroke-width="1" fill="none">
+          <path d="M0,35 Q62,22 124,35 Q186,48 248,35 Q310,22 372,35 Q434,48 500,35"/>
+          <path d="M0,75 Q70,62 140,75 Q210,88 280,75 Q350,62 420,75 Q470,84 500,75"/>
+          <path d="M0,170 Q80,157 160,170 Q240,183 320,170 Q400,157 480,170"/>
+        </g>
+        <!-- ISLAND -->
+        <ellipse cx="75" cy="110" rx="52" ry="35" fill="#2d6e1a" opacity="0.82"/>
+        <ellipse cx="70" cy="103" rx="35" ry="26" fill="#3a8c22" opacity="0.7"/>
+        <line x1="76" y1="98" x2="76" y2="76" stroke="#5a3e10" stroke-width="2"/>
+        <ellipse cx="76" cy="73" rx="12" ry="7" fill="#2d8c1a"/>
+        <line x1="88" y1="100" x2="100" y2="83" stroke="#5a3e10" stroke-width="1.5"/>
+        <ellipse cx="102" cy="80" rx="10" ry="6" fill="#2d8c1a" opacity="0.85"/>
+        <!-- JUNGLE -->
+        <ellipse cx="210" cy="112" rx="46" ry="34" fill="#1a5a14" opacity="0.8"/>
+        <circle cx="204" cy="102" r="13" fill="#1a6010" opacity="0.9"/>
+        <circle cx="218" cy="106" r="11" fill="#228020" opacity="0.85"/>
+        <circle cx="196" cy="108" r="9" fill="#1a6010" opacity="0.8"/>
+        <!-- RUINS -->
+        <g transform="translate(345,82)">
+          <rect x="-20" y="22" width="40" height="28" fill="#7a6840" rx="1" opacity="0.88"/>
+          <rect x="-14" y="10" width="11" height="16" fill="#8a7848" opacity="0.82"/>
+          <rect x="4" y="5" width="11" height="21" fill="#8a7848" opacity="0.82"/>
+          <rect x="-22" y="48" width="44" height="5" fill="#6a5830" opacity="0.9"/>
+          <rect x="-30" y="40" width="8" height="6" fill="#7a6840" rx="1" opacity="0.65"/>
+          <rect x="24" y="36" width="9" height="5" fill="#7a6840" rx="1" opacity="0.65"/>
+        </g>
+        <!-- TREASURE X -->
+        <text x="442" y="162" font-size="22" text-anchor="middle" fill="#c8a017" filter="url(#gf)">&#128176;</text>
+        <text x="442" y="180" font-family="Georgia,serif" font-size="16" font-weight="bold" text-anchor="middle" fill="#c8a017" filter="url(#gf)">X</text>
+        <!-- PATHS -->
+        <g stroke="#8b4513" stroke-width="1.6" fill="none" stroke-dasharray="5,4" opacity="0.7">
+          <path d="M75,110 Q142,92 210,112"/>
+          <path d="M210,112 Q278,100 345,102"/>
+          <path d="M345,102 Q394,130 442,160"/>
+        </g>
+        <!-- LABELS -->
+        <text x="75"  y="153" font-family="Georgia,serif" font-size="10" text-anchor="middle" fill="#2a1a08" font-style="italic">&#127965; Island</text>
+        <text x="210" y="154" font-family="Georgia,serif" font-size="10" text-anchor="middle" fill="#2a1a08" font-style="italic">&#127796; Jungle</text>
+        <text x="348" y="120" font-family="Georgia,serif" font-size="10" text-anchor="middle" fill="#2a1a08" font-style="italic">&#128511; Ruins</text>
+        <text x="442" y="198" font-family="Georgia,serif" font-size="10" text-anchor="middle" fill="#8b4513" font-weight="bold">&#128176; Treasure</text>
+        <!-- CLICKABLE ZONES -->
+        <g class="mpin" onclick="clickIsland()">
+          <ellipse class="mring" id="r-island" cx="75" cy="110" rx="54" ry="37"/>
+        </g>
+        <g class="mpin" onclick="clickJungle()">
+          <ellipse class="mring" id="r-jungle" cx="210" cy="112" rx="48" ry="36"/>
+        </g>
+        <g class="mpin" onclick="clickRuins()">
+          <rect class="mring" id="r-ruins" x="325" y="80" width="44" height="52"/>
+        </g>
+      </svg>
+    </div>
+    <p class="err" id="e1"></p>
+    <div class="btn-row" id="b1" style="display:none;margin-top:10px;">
+      <button class="btn" onclick="gotoJungle()">&#127796; Head to the Jungle</button>
+    </div>
+    <div class="rope"></div>
+  </div>
+</div>
+
+<!-- ===== SCREEN 2: JUNGLE PUZZLE ===== -->
+<div class="screen" id="s2">
+  <div class="card">
+    <div class="compass-wrap"><div class="compass">&#129517;</div></div>
+    <div class="rope"></div>
+    <div class="lbl">Clue 2 of 3</div>
+    <h1 class="title">The Stone Puzzle</h1>
+    <div class="skull-div">&#9760; &middot; &middot; &#9760;</div>
+    <div class="dots">
+      <div class="dot lit"></div><div class="dot lit"></div>
+      <div class="dot" id="d2b"></div><div class="dot"></div>
+    </div>
+    <p class="story-text" id="t2"></p>
+    <div class="syms">
+      <button class="sym" id="sym-skull" onclick="pickSymbol('skull')">
+        &#128128;<span>SKULL</span>
+      </button>
+      <button class="sym" id="sym-anchor" onclick="pickSymbol('anchor')">
+        &#9875;<span>ANCHOR</span>
+      </button>
+      <button class="sym" id="sym-star" onclick="pickSymbol('star')">
+        &#11088;<span>STAR</span>
+      </button>
+    </div>
+    <p class="err" id="e2"></p>
+    <div class="rope"></div>
+  </div>
+</div>
+
+<!-- ===== SCREEN 3: RUINS RIDDLE ===== -->
+<div class="screen" id="s3">
+  <div class="card">
+    <div class="compass-wrap"><div class="compass">&#129517;</div></div>
+    <div class="rope"></div>
+    <div class="lbl">Clue 3 of 3</div>
+    <h1 class="title">The Ruins Riddle</h1>
+    <div class="skull-div">&#9760; &middot; &middot; &#9760;</div>
+    <div class="dots">
+      <div class="dot lit"></div><div class="dot lit"></div>
+      <div class="dot lit"></div><div class="dot" id="d3b"></div>
+    </div>
+    <p class="story-text" id="t3"></p>
+    <div class="btn-row" style="flex-direction:column;align-items:center;">
+      <button class="rb" id="rb1" onclick="pickRiddle('west')">&#127749; Face West</button>
+      <button class="rb" id="rb2" onclick="pickRiddle('north')">&#11088; Follow the North Star</button>
+      <button class="rb" id="rb3" onclick="pickRiddle('ground')">&#127744; Dig the Ground</button>
+    </div>
+    <p class="err" id="e3"></p>
+    <div class="rope"></div>
+  </div>
+</div>
+
+<!-- ===== SCREEN 4: TREASURE ===== -->
+<div class="screen" id="s4">
+  <div class="card" style="text-align:center;">
+    <div class="compass-wrap"><div class="compass">&#129517;</div></div>
+    <div class="rope"></div>
+    <div class="lbl">The Legend Fulfilled</div>
+    <h1 class="title gold-title">TREASURE FOUND!</h1>
+    <div class="skull-div">&#9760; &middot; &middot; &#9760;</div>
+    <div class="dots">
+      <div class="dot lit"></div><div class="dot lit"></div>
+      <div class="dot lit"></div><div class="dot lit"></div>
+    </div>
+    <div class="chest-box" id="chestbox">
+      <div class="chest-ico" id="chico">&#128308;</div>
+    </div>
+    <p class="story-text" id="t4"></p>
+    <div class="btn-row">
+      <button class="btn big" onclick="restart()">&#8635; Sail Again</button>
+    </div>
+    <div class="rope"></div>
+  </div>
+</div>
+
+<button id="mute" onclick="toggleMute()">&#128266;</button>
+
+<script>
+/* ==============================================
+   STARS
+============================================== */
+(function(){
+  var od = document.getElementById('ocean');
+  for(var i = 0; i < 70; i++){
+    var s = document.createElement('div');
+    s.className = 'star';
+    var sz = 0.8 + Math.random() * 1.4;
+    s.style.cssText = 'width:' + sz + 'px;height:' + sz + 'px;'
+      + 'left:' + (Math.random() * 100) + 'vw;'
+      + 'top:' + (Math.random() * 55) + 'vh;'
+      + 'animation-duration:' + (2 + Math.random() * 4) + 's;'
+      + 'animation-delay:' + (-Math.random() * 4) + 's;';
+    od.appendChild(s);
+  }
+})();
+
+/* ==============================================
+   SEAGULLS
+============================================== */
+function spawnGull(){
+  var g = document.createElement('div');
+  g.className = 'gull';
+  g.textContent = '\uD83D\uDD4A';
+  var dur = 12 + Math.random() * 10;
+  g.style.cssText = 'top:' + (4 + Math.random() * 22) + 'vh;'
+    + 'animation-duration:' + dur + 's;'
+    + 'animation-delay:' + (-Math.random() * dur) + 's;';
+  document.body.appendChild(g);
+  setTimeout(function(){ g.remove(); }, (dur + 1) * 1000);
+}
+spawnGull(); spawnGull();
+setInterval(spawnGull, 10000);
+
+/* ==============================================
+   GOLD PARTICLES CANVAS
+============================================== */
+var gc = document.getElementById('gcanvas');
+var gctx = gc.getContext('2d');
+var gw, gh, gparts = [], gactive = false;
+function resizeGC(){ gw = gc.width = window.innerWidth; gh = gc.height = window.innerHeight; }
+window.addEventListener('resize', resizeGC);
+resizeGC();
+
+function fireGoldParticles(){
+  gparts = [];
+  for(var i = 0; i < 130; i++){
+    gparts.push({
+      x: gw / 2, y: gh / 2,
+      vx: (Math.random() - 0.5) * 9,
+      vy: (Math.random() - 0.5) * 9 - 4,
+      r: 2 + Math.random() * 5,
+      o: 1,
+      h: 38 + Math.random() * 28
+    });
+  }
+  gactive = true;
+  gc.classList.add('show');
+  animGold();
+}
+function animGold(){
+  if(!gactive) return;
+  gctx.clearRect(0, 0, gw, gh);
+  var alive = false;
+  for(var i = 0; i < gparts.length; i++){
+    var p = gparts[i];
+    p.x += p.vx; p.y += p.vy; p.vy += 0.12; p.o -= 0.007;
+    if(p.o > 0){
+      alive = true;
+      gctx.globalAlpha = p.o;
+      gctx.fillStyle = 'hsl(' + p.h + ',100%,60%)';
+      gctx.beginPath(); gctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); gctx.fill();
+    }
+  }
+  gctx.globalAlpha = 1;
+  if(alive) requestAnimationFrame(animGold);
+  else { gactive = false; gc.classList.remove('show'); }
+}
+
+/* ==============================================
+   AUDIO ENGINE
+============================================== */
+var actx = null, mgain = null, muted = false, anodes = [];
+var pirateTid = null, waveTid = null, sgTid = null;
+var pstep = 0, prevRev = null, waveRev = null, sgRev = null;
+
+function initAudio(){
+  if(actx) return;
+  actx = new(window.AudioContext || window.webkitAudioContext)();
+  mgain = actx.createGain();
+  mgain.gain.setValueAtTime(0.30, actx.currentTime);
+  mgain.connect(actx.destination);
+}
+
+function stopAudio(){
+  clearTimeout(pirateTid); clearTimeout(waveTid); clearTimeout(sgTid);
+  for(var i = 0; i < anodes.length; i++){ try{ anodes[i].stop(); }catch(e){} }
+  anodes = [];
+}
+
+function mkReverb(dec){
+  var cv = actx.createConvolver();
+  var len = actx.sampleRate * dec;
+  var buf = actx.createBuffer(2, len, actx.sampleRate);
+  for(var c = 0; c < 2; c++){
+    var d = buf.getChannelData(c);
+    for(var j = 0; j < len; j++) d[j] = (Math.random() * 2 - 1) * Math.pow(1 - j / len, 2.2);
+  }
+  cv.buffer = buf; return cv;
+}
+
+function playNote(f, t, type, vol, dur, rev){
+  var o = actx.createOscillator();
+  var g = actx.createGain();
+  o.type = type || 'sine';
+  o.frequency.setValueAtTime(f, t);
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(vol, t + 0.2);
+  g.gain.setValueAtTime(vol, t + dur - 0.35);
+  g.gain.linearRampToValueAtTime(0, t + dur);
+  o.connect(g);
+  if(rev){ g.connect(rev); rev.connect(mgain); } else { g.connect(mgain); }
+  o.start(t); o.stop(t + dur + 0.1);
+  anodes.push(o);
+}
+
+var pscale = [110,123,138,147,165,185,196,220,247,165,138,110];
+
+function pirateLoop(){
+  if(muted) return;
+  var t = actx.currentTime;
+  if(!prevRev) prevRev = mkReverb(2.5);
+  playNote(55, t, 'sine', 0.16, 0.22, null);
+  var f = pscale[pstep % pscale.length];
+  playNote(f, t + 0.05, 'sawtooth', 0.055, 0.75, prevRev);
+  playNote(f * 1.5, t + 0.15, 'triangle', 0.025, 0.55, prevRev);
+  if(pstep % 4 === 0) playNote(41, t, 'sine', 0.07, 1.8, prevRev);
+  pstep++;
+  pirateTid = setTimeout(pirateLoop, 460 + Math.random() * 100);
+}
+
+function waveLoop(){
+  if(muted) return;
+  if(!waveRev) waveRev = mkReverb(3);
+  var t = actx.currentTime;
+  playNote(58 + Math.random() * 18, t, 'sine', 0.065, 2.8, waveRev);
+  playNote(78 + Math.random() * 14, t + 0.4, 'triangle', 0.04, 2.2, waveRev);
+  waveTid = setTimeout(waveLoop, 2600);
+}
+
+function gullSound(){
+  if(muted) return;
+  if(!sgRev) sgRev = mkReverb(1.5);
+  var t = actx.currentTime;
+  var ff = [880, 1040, 920, 860];
+  for(var i = 0; i < ff.length; i++) playNote(ff[i], t + i * 0.11, 'sine', 0.035, 0.16, sgRev);
+  sgTid = setTimeout(gullSound, 4500 + Math.random() * 5000);
+}
+
+function startAllMusic(){
+  initAudio(); stopAudio();
+  pstep = 0; prevRev = null; waveRev = null; sgRev = null;
+  pirateLoop();
+  setTimeout(waveLoop, 500);
+  setTimeout(gullSound, 2000);
+  document.getElementById('mute').classList.add('show');
+}
+
+function sfxSuccess(){
+  if(!actx) return;
+  var rv = mkReverb(1.5);
+  var ff = [523, 659, 784, 1047];
+  for(var i = 0; i < ff.length; i++) playNote(ff[i], actx.currentTime + i * 0.11, 'sine', 0.1, 0.5, rv);
+}
+function sfxWrong(){
+  if(!actx) return;
+  playNote(175, actx.currentTime, 'sawtooth', 0.09, 0.28, null);
+  playNote(148, actx.currentTime + 0.14, 'sawtooth', 0.07, 0.22, null);
+}
+function sfxChest(){
+  if(!actx) return;
+  var rv = mkReverb(1);
+  var ff = [200, 180, 160, 140, 120];
+  for(var i = 0; i < ff.length; i++) playNote(ff[i], actx.currentTime + i * 0.07, 'sawtooth', 0.06, 0.14, rv);
+}
+function sfxCoins(){
+  if(!actx) return;
+  var rv = mkReverb(1);
+  for(var i = 0; i < 10; i++) playNote(750 + Math.random() * 900, actx.currentTime + i * 0.055, 'sine', 0.045, 0.11, rv);
+}
+function sfxFanfare(){
+  if(!actx) return;
+  var rv = mkReverb(3);
+  var ch = [[523,659,784],[587,740,880],[659,830,988],[784,988,1176]];
+  for(var ci = 0; ci < ch.length; ci++){
+    for(var ni = 0; ni < ch[ci].length; ni++){
+      playNote(ch[ci][ni], actx.currentTime + ci * 0.2, 'sine', 0.085, 1.3, rv);
+    }
+  }
+}
+
+function toggleMute(){
+  muted = !muted;
+  if(mgain) mgain.gain.setTargetAtTime(muted ? 0 : 0.30, actx.currentTime, 0.1);
+  document.getElementById('mute').textContent = muted ? '\uD83D\uDD07' : '\uD83D\uDD0A';
+}
+
+var musicStarted = false;
+function tryStartMusic(){
+  if(musicStarted) return;
+  musicStarted = true;
+  startAllMusic();
+}
+document.addEventListener('click', tryStartMusic, { once: true });
+document.addEventListener('touchstart', tryStartMusic, { once: true });
+
+/* ==============================================
+   TYPEWRITER
+============================================== */
+function typeWriter(el, text, speed, cb){
+  speed = speed || 30;
+  el.textContent = '';
+  var i = 0;
+  var cur = document.createElement('span');
+  cur.style.cssText = 'display:inline-block;width:2px;height:1em;'
+    + 'background:#2a6e2a;vertical-align:text-bottom;'
+    + 'animation:twinkle 0.7s step-end infinite;';
+  el.appendChild(cur);
+  var tid = setInterval(function(){
+    el.insertBefore(document.createTextNode(text[i]), cur);
+    i++;
+    if(i >= text.length){
+      clearInterval(tid);
+      setTimeout(function(){ cur.remove(); if(cb) cb(); }, 400);
+    }
+  }, speed);
+}
+
+/* ==============================================
+   SCENE SWITCHER
+============================================== */
+function goTo(id, cb){
+  var fl = document.getElementById('flash');
+  fl.classList.add('on');
+  setTimeout(function(){
+    document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('show'); });
+    fl.classList.remove('on');
+    document.getElementById(id).classList.add('show');
+    if(cb) setTimeout(cb, 200);
+  }, 280);
+}
+
+/* ==============================================
+   STORY STRINGS  (apostrophes replaced with HTML entities or avoided)
+============================================== */
+var TEXT_OPEN = "Legend says a hidden pirate treasure lies on Black Isle, cursed by its most feared captain three centuries ago. No soul has claimed it since. Ancient clues mark the path. Ancient traps guard the gold. Follow the clues. Claim the treasure.";
+
+var TEXT_MAP = "A faded map lies before you with three locations marked in blood-red ink. Each location hides a clue. Click the Island first to begin your hunt.";
+
+var TEXT_ISLAND = "A weathered stone at the shore reads: Where the sun sets behind the palm trees, the next path begins. Seek the thickest green of the jungle. Head there now.";
+
+var TEXT_JUNGLE = "Moss-covered stones form a strange ancient door. Three symbols are carved above it. A rusted plaque warns: Only one mark carries the captain oath. Choose wrongly and the path seals forever. Pick the correct symbol to open the door.";
+
+var TEXT_RUINS = "Inside the door, crumbling ruins stretch into shadow. An inscription glows faintly on the floor: The treasure sleeps not beneath the sky, nor behind any star, but where the captain breathed his last. Look beneath your feet. What will you do?";
+
+var TEXT_TREASURE = "The earth cracks open. Golden light floods the chamber. Before you sits the legendary chest of Black Isle, overflowing with cursed gold. You have broken the curse. The treasure is yours!";
+
+var ERR_ISLAND_FIRST = "Seek the Island clue first, brave sailor!";
+var ERR_RUINS_LOCKED  = "The ruins are sealed. Follow the correct path.";
+var ERR_JUNGLE_WRONG  = "The stone shudders... wrong mark. Try again.";
+var ERR_RUINS_WRONG   = "The ruins groan. That is not the way.";
+
+/* ==============================================
+   GAME STATE
+============================================== */
+var islandDone = false;
+
+/* ==============================================
+   SCREEN 0
+============================================== */
+window.addEventListener('DOMContentLoaded', function(){
+  setTimeout(function(){
+    typeWriter(document.getElementById('t0'), TEXT_OPEN, 28, function(){
+      document.getElementById('b0').style.opacity = '1';
+    });
+  }, 500);
+});
+
+/* ==============================================
+   SCREEN 1: MAP
+============================================== */
+function gotoMap(){
+  islandDone = false;
+  goTo('s1', function(){
+    document.getElementById('b1').style.display = 'none';
+    document.getElementById('e1').textContent = '';
+    typeWriter(document.getElementById('t1'), TEXT_MAP, 28);
+    pulseRing('r-island');
+  });
+}
+
+function pulseRing(id){
+  var el = document.getElementById(id);
+  if(!el) return;
+  el.style.stroke = 'rgba(212,160,23,0.8)';
+  el.style.strokeWidth = '3';
+  var on = true;
+  var iv = setInterval(function(){
+    on = !on;
+    el.style.stroke = on ? 'rgba(212,160,23,0.75)' : 'rgba(212,160,23,0.15)';
+  }, 600);
+  setTimeout(function(){ clearInterval(iv); el.style.stroke = 'transparent'; }, 9000);
+}
+
+function showErr(id, msg){
+  var el = document.getElementById(id);
+  el.textContent = msg;
+  setTimeout(function(){ el.textContent = ''; }, 2400);
+}
+
+function clickIsland(){
+  sfxSuccess();
+  document.getElementById('e1').textContent = '';
+  typeWriter(document.getElementById('t1'), TEXT_ISLAND, 28, function(){
+    islandDone = true;
+    document.getElementById('b1').style.display = 'flex';
+    pulseRing('r-jungle');
+  });
+}
+
+function clickJungle(){
+  if(!islandDone){ showErr('e1', ERR_ISLAND_FIRST); sfxWrong(); return; }
+  gotoJungle();
+}
+
+function clickRuins(){
+  showErr('e1', ERR_RUINS_LOCKED); sfxWrong();
+}
+
+/* ==============================================
+   SCREEN 2: JUNGLE PUZZLE
+============================================== */
+function gotoJungle(){
+  goTo('s2', function(){
+    var ids = ['sym-skull','sym-anchor','sym-star'];
+    for(var i = 0; i < ids.length; i++){
+      var el = document.getElementById(ids[i]);
+      el.classList.remove('wrong','right');
+      el.disabled = false;
+    }
+    document.getElementById('e2').textContent = '';
+    typeWriter(document.getElementById('t2'), TEXT_JUNGLE, 28);
+  });
+}
+
+function pickSymbol(s){
+  if(s === 'anchor'){
+    document.getElementById('sym-anchor').classList.add('right');
+    sfxSuccess();
+    document.getElementById('e2').textContent = '';
+    var ids = ['sym-skull','sym-anchor','sym-star'];
+    for(var i = 0; i < ids.length; i++) document.getElementById(ids[i]).disabled = true;
+    document.getElementById('d2b').classList.add('lit');
+    setTimeout(gotoRuins, 900);
+  } else {
+    var el = document.getElementById('sym-' + s);
+    el.classList.add('wrong');
+    sfxWrong();
+    showErr('e2', ERR_JUNGLE_WRONG);
+    setTimeout(function(){ el.classList.remove('wrong'); }, 1100);
+  }
+}
+
+/* ==============================================
+   SCREEN 3: RUINS RIDDLE
+============================================== */
+function gotoRuins(){
+  goTo('s3', function(){
+    document.getElementById('rb1').disabled = false;
+    document.getElementById('rb2').disabled = false;
+    document.getElementById('rb3').disabled = false;
+    document.getElementById('e3').textContent = '';
+    typeWriter(document.getElementById('t3'), TEXT_RUINS, 28);
+  });
+}
+
+function pickRiddle(choice){
+  if(choice === 'ground'){
+    sfxSuccess();
+    document.getElementById('e3').textContent = '';
+    document.getElementById('rb1').disabled = true;
+    document.getElementById('rb2').disabled = true;
+    document.getElementById('rb3').disabled = true;
+    document.getElementById('d3b').classList.add('lit');
+    setTimeout(gotoTreasure, 700);
+  } else {
+    sfxWrong();
+    showErr('e3', ERR_RUINS_WRONG);
+  }
+}
+
+/* ==============================================
+   SCREEN 4: TREASURE
+============================================== */
+function gotoTreasure(){
+  goTo('s4', function(){
+    var ci = document.getElementById('chico');
+    ci.textContent = '\uD83D\uDFE5';
+    ci.className = 'chest-ico';
+    typeWriter(document.getElementById('t4'), TEXT_TREASURE, 30);
+    setTimeout(function(){
+      sfxChest();
+      ci.textContent = '\uD83D\uDCE6';
+      ci.classList.add('chest-open');
+    }, 800);
+    setTimeout(function(){
+      ci.textContent = '\uD83D\uDCB0';
+      sfxCoins(); sfxFanfare();
+      fireGoldParticles(); spawnCoins();
+    }, 1600);
+  });
+}
+
+function spawnCoins(){
+  var box = document.getElementById('chestbox');
+  var emo = ['\uD83E\uDE99','\uD83D\uDCB0','\u2B50','\u2728','\uD83D\uDCB5'];
+  for(var i = 0; i < 20; i++){
+    var c = document.createElement('div');
+    c.className = 'coin-burst';
+    c.textContent = emo[Math.floor(Math.random() * emo.length)];
+    var ang = Math.random() * Math.PI * 2;
+    var dist = 55 + Math.random() * 110;
+    c.style.setProperty('--cx', (Math.cos(ang) * dist) + 'px');
+    c.style.setProperty('--cy', (Math.sin(ang) * dist) + 'px');
+    c.style.animationDuration = (0.7 + Math.random() * 0.6) + 's';
+    c.style.animationDelay = (Math.random() * 0.35) + 's';
+    box.appendChild(c);
+    setTimeout(function(el){ el.remove(); }, 1500, c);
+  }
+}
+
+/* ==============================================
+   RESTART
+============================================== */
+function restart(){
+  islandDone = false;
+  var dids = ['d1','d2','d3','d2b','d3b'];
+  for(var i = 0; i < dids.length; i++){
+    var d = document.getElementById(dids[i]);
+    if(d) d.classList.remove('lit');
+  }
+  goTo('s0', function(){
+    document.getElementById('b0').style.opacity = '0';
+    var ot = document.getElementById('t0');
+    typeWriter(ot, TEXT_OPEN, 28, function(){
+      document.getElementById('b0').style.opacity = '1';
+    });
+    if(musicStarted) startAllMusic();
+  });
+}
+</script>
+</body>
+</html>

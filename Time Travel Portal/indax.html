@@ -1,0 +1,1271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⏳ Time Travel Portal</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&family=Orbitron:wght@400;500;700;900&display=swap');
+
+  :root {
+    --neon-blue: #00d4ff;
+    --neon-purple: #9b30ff;
+    --neon-gold: #ffd700;
+    --neon-cyan: #00ffff;
+    --dark-bg: #020408;
+    --portal-glow: #4400ff;
+    --energy: #00aaff;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--dark-bg);
+    color: #fff;
+    font-family: 'Rajdhani', sans-serif;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+    cursor: crosshair;
+  }
+
+  /* ========= STAR FIELD ========= */
+  #starfield {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  /* ========= NOISE OVERLAY ========= */
+  .noise {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    opacity: 0.03;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 200px;
+  }
+
+  /* ========= SCENES ========= */
+  .scene {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.8s ease;
+  }
+  .scene.active {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  /* ========= SCENE: INTRO ========= */
+  #scene-intro {
+    background: radial-gradient(ellipse at 50% 60%, #0a0020 0%, #020408 70%);
+  }
+
+  .intro-content {
+    position: relative;
+    z-index: 20;
+    text-align: center;
+    padding: 20px;
+  }
+
+  .title-badge {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(0.6rem, 1.5vw, 0.85rem);
+    letter-spacing: 0.4em;
+    color: var(--neon-blue);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    opacity: 0;
+    animation: fadeUp 1s 0.5s forwards;
+  }
+
+  .main-title {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: clamp(2rem, 6vw, 4.5rem);
+    font-weight: 900;
+    background: linear-gradient(135deg, #fff 0%, var(--neon-blue) 40%, var(--neon-purple) 80%, var(--neon-gold) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.1;
+    margin-bottom: 16px;
+    opacity: 0;
+    animation: fadeUp 1s 0.8s forwards;
+    text-shadow: none;
+    filter: drop-shadow(0 0 30px rgba(0,212,255,0.3));
+  }
+
+  /* ========= PORTAL ========= */
+  .portal-container {
+    position: relative;
+    width: clamp(200px, 35vw, 340px);
+    height: clamp(200px, 35vw, 340px);
+    margin: 24px auto;
+    opacity: 0;
+    animation: fadeUp 1s 1.2s forwards;
+  }
+
+  .portal-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 2px solid transparent;
+  }
+
+  .ring-1 {
+    border-color: rgba(0,212,255,0.6);
+    animation: spin 4s linear infinite;
+    box-shadow: 0 0 20px rgba(0,212,255,0.4), inset 0 0 20px rgba(0,212,255,0.1);
+  }
+  .ring-2 {
+    inset: 12px;
+    border-color: rgba(155,48,255,0.5);
+    animation: spin 7s linear infinite reverse;
+    box-shadow: 0 0 15px rgba(155,48,255,0.4);
+  }
+  .ring-3 {
+    inset: 24px;
+    border-color: rgba(255,215,0,0.4);
+    animation: spin 5s linear infinite;
+    border-style: dashed;
+  }
+  .ring-4 {
+    inset: 36px;
+    border-color: rgba(0,255,255,0.3);
+    animation: spin 3s linear infinite reverse;
+  }
+
+  .portal-core {
+    position: absolute;
+    inset: 48px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #1a00ff 0%, #0055aa 30%, #001133 60%, transparent 100%);
+    animation: portalPulse 2s ease-in-out infinite;
+    overflow: hidden;
+  }
+
+  .portal-inner-glow {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(0,200,255,0.8) 0%, rgba(100,0,255,0.4) 40%, transparent 70%);
+    animation: portalPulse 2s ease-in-out infinite reverse;
+  }
+
+  .portal-ripple {
+    position: absolute;
+    inset: -10px;
+    border-radius: 50%;
+    border: 1px solid rgba(0,212,255,0.2);
+    animation: ripple 3s ease-out infinite;
+  }
+  .portal-ripple:nth-child(2) { animation-delay: 1s; }
+  .portal-ripple:nth-child(3) { animation-delay: 2s; }
+
+  /* Particle dots on rings */
+  .ring-1::before, .ring-1::after,
+  .ring-2::before, .ring-2::after {
+    content: '';
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--neon-blue);
+    box-shadow: 0 0 10px var(--neon-blue);
+    top: -3px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  .ring-2::before { background: var(--neon-purple); box-shadow: 0 0 10px var(--neon-purple); }
+  .ring-1::after { bottom: -3px; top: auto; background: var(--neon-gold); box-shadow: 0 0 10px var(--neon-gold); }
+  .ring-2::after { bottom: -3px; top: auto; }
+
+  /* ========= TYPEWRITER ========= */
+  .typewriter-wrap {
+    min-height: 60px;
+    margin: 8px 0 20px;
+    opacity: 0;
+    animation: fadeUp 1s 2s forwards;
+  }
+
+  #typewriter-text {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: clamp(0.9rem, 2.5vw, 1.15rem);
+    font-weight: 400;
+    color: rgba(200,230,255,0.85);
+    letter-spacing: 0.08em;
+    line-height: 1.6;
+  }
+
+  .cursor-blink {
+    display: inline-block;
+    width: 2px;
+    height: 1.1em;
+    background: var(--neon-blue);
+    vertical-align: middle;
+    margin-left: 2px;
+    animation: blink 0.8s step-end infinite;
+  }
+
+  /* ========= BUTTONS ========= */
+  .btn-portal {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 36px;
+    background: transparent;
+    border: 1px solid var(--neon-blue);
+    color: var(--neon-blue);
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(0.75rem, 2vw, 0.9rem);
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    clip-path: polygon(10px 0%, 100% 0%, calc(100% - 10px) 100%, 0% 100%);
+    opacity: 0;
+    animation: fadeUp 1s 2.8s forwards;
+  }
+
+  .btn-portal::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--neon-blue);
+    transform: translateX(-110%);
+    transition: transform 0.4s ease;
+    z-index: -1;
+  }
+
+  .btn-portal:hover {
+    color: #000;
+    box-shadow: 0 0 30px rgba(0,212,255,0.6), 0 0 60px rgba(0,212,255,0.3);
+  }
+  .btn-portal:hover::before { transform: translateX(0); }
+
+  .btn-portal.gold {
+    border-color: var(--neon-gold);
+    color: var(--neon-gold);
+  }
+  .btn-portal.gold::before { background: var(--neon-gold); }
+  .btn-portal.gold:hover { box-shadow: 0 0 30px rgba(255,215,0,0.6); }
+
+  .btn-portal.purple {
+    border-color: var(--neon-purple);
+    color: var(--neon-purple);
+  }
+  .btn-portal.purple::before { background: var(--neon-purple); }
+  .btn-portal.purple:hover { box-shadow: 0 0 30px rgba(155,48,255,0.6); color: #fff; }
+
+  /* ========= SCENE: TIMELINE SELECTION ========= */
+  #scene-timelines {
+    background: radial-gradient(ellipse at 50% 50%, #060015 0%, #020408 80%);
+  }
+
+  .timelines-header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+
+  .section-label {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(0.55rem, 1.3vw, 0.75rem);
+    letter-spacing: 0.5em;
+    color: var(--neon-purple);
+    margin-bottom: 8px;
+  }
+
+  .section-title {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: clamp(1.4rem, 4vw, 2.8rem);
+    background: linear-gradient(90deg, var(--neon-blue), #fff, var(--neon-purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .cards-grid {
+    display: flex;
+    gap: clamp(12px, 2.5vw, 24px);
+    justify-content: center;
+    flex-wrap: wrap;
+    padding: 0 16px;
+  }
+
+  .timeline-card {
+    width: clamp(180px, 26vw, 260px);
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 4px;
+    padding: clamp(16px, 2.5vw, 28px) clamp(14px, 2vw, 22px);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.4s ease;
+    text-align: center;
+    clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px));
+  }
+
+  .timeline-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    border-radius: 4px;
+  }
+
+  .card-egypt::before { background: radial-gradient(circle at 50% 50%, rgba(255,180,0,0.12), transparent 70%); }
+  .card-medieval::before { background: radial-gradient(circle at 50% 50%, rgba(200,100,50,0.12), transparent 70%); }
+  .card-future::before { background: radial-gradient(circle at 50% 50%, rgba(0,200,255,0.12), transparent 70%); }
+
+  .timeline-card:hover::before { opacity: 1; }
+
+  .card-egypt:hover { border-color: var(--neon-gold); box-shadow: 0 0 30px rgba(255,215,0,0.2), 0 20px 40px rgba(0,0,0,0.4); transform: translateY(-6px); }
+  .card-medieval:hover { border-color: #ff7733; box-shadow: 0 0 30px rgba(255,100,50,0.2), 0 20px 40px rgba(0,0,0,0.4); transform: translateY(-6px); }
+  .card-future:hover { border-color: var(--neon-cyan); box-shadow: 0 0 30px rgba(0,255,255,0.2), 0 20px 40px rgba(0,0,0,0.4); transform: translateY(-6px); }
+
+  .card-icon {
+    font-size: clamp(2.5rem, 5vw, 3.8rem);
+    margin-bottom: 12px;
+    display: block;
+    filter: drop-shadow(0 0 10px rgba(255,255,255,0.3));
+    animation: float 3s ease-in-out infinite;
+  }
+  .timeline-card:nth-child(2) .card-icon { animation-delay: 1s; }
+  .timeline-card:nth-child(3) .card-icon { animation-delay: 2s; }
+
+  .card-era {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(0.55rem, 1.2vw, 0.7rem);
+    letter-spacing: 0.4em;
+    margin-bottom: 6px;
+  }
+  .card-egypt .card-era { color: var(--neon-gold); }
+  .card-medieval .card-era { color: #ff8844; }
+  .card-future .card-era { color: var(--neon-cyan); }
+
+  .card-title {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: clamp(0.9rem, 2.2vw, 1.3rem);
+    margin-bottom: 10px;
+    color: #fff;
+  }
+
+  .card-desc {
+    font-size: clamp(0.75rem, 1.5vw, 0.88rem);
+    color: rgba(180,200,220,0.7);
+    line-height: 1.5;
+    font-weight: 300;
+  }
+
+  .card-enter {
+    display: inline-block;
+    margin-top: 14px;
+    font-family: 'Orbitron', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.3em;
+    padding: 6px 16px;
+    border: 1px solid;
+    opacity: 0;
+    transform: translateY(6px);
+    transition: all 0.3s ease 0.1s;
+  }
+  .card-egypt .card-enter { border-color: var(--neon-gold); color: var(--neon-gold); }
+  .card-medieval .card-enter { border-color: #ff8844; color: #ff8844; }
+  .card-future .card-enter { border-color: var(--neon-cyan); color: var(--neon-cyan); }
+  .timeline-card:hover .card-enter { opacity: 1; transform: translateY(0); }
+
+  /* ========= SCENE: TIMELINE EXPERIENCES ========= */
+  .timeline-scene {
+    padding: 20px;
+  }
+
+  #scene-egypt { background: linear-gradient(180deg, #1a0a00 0%, #2d1500 30%, #1a0800 70%, #0a0400 100%); }
+  #scene-medieval { background: linear-gradient(180deg, #0a0a0f 0%, #1a1020 30%, #0f0808 70%, #050305 100%); }
+  #scene-future { background: linear-gradient(180deg, #000a1a 0%, #001030 30%, #000820 70%, #000408 100%); }
+
+  .tl-visual {
+    font-size: clamp(4rem, 10vw, 7rem);
+    margin-bottom: 8px;
+    animation: float 3s ease-in-out infinite;
+    filter: drop-shadow(0 0 20px rgba(255,255,255,0.2));
+  }
+
+  .tl-era-label {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(0.55rem, 1.2vw, 0.7rem);
+    letter-spacing: 0.6em;
+    margin-bottom: 10px;
+  }
+  #scene-egypt .tl-era-label { color: var(--neon-gold); }
+  #scene-medieval .tl-era-label { color: #ff8844; }
+  #scene-future .tl-era-label { color: var(--neon-cyan); }
+
+  .tl-title {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: clamp(1.5rem, 4vw, 3rem);
+    margin-bottom: 16px;
+  }
+  #scene-egypt .tl-title { color: var(--neon-gold); text-shadow: 0 0 30px rgba(255,215,0,0.4); }
+  #scene-medieval .tl-title { color: #ff9955; text-shadow: 0 0 30px rgba(255,150,80,0.4); }
+  #scene-future .tl-title { color: var(--neon-cyan); text-shadow: 0 0 30px rgba(0,255,255,0.4); }
+
+  .tl-story {
+    font-size: clamp(0.9rem, 2vw, 1.1rem);
+    color: rgba(220,230,240,0.85);
+    max-width: 540px;
+    line-height: 1.7;
+    margin: 0 auto 20px;
+    font-weight: 300;
+    letter-spacing: 0.04em;
+  }
+
+  .tl-ambience {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+  }
+
+  .ambience-tag {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.55rem;
+    letter-spacing: 0.25em;
+    padding: 4px 12px;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 100px;
+    color: rgba(180,200,220,0.6);
+    background: rgba(255,255,255,0.04);
+  }
+
+  .tl-particles {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 0;
+  }
+
+  /* Egypt particles */
+  #scene-egypt .tl-particles::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% 80%, rgba(255,180,0,0.08) 0%, transparent 60%),
+                radial-gradient(ellipse at 20% 100%, rgba(255,150,0,0.05) 0%, transparent 40%),
+                radial-gradient(ellipse at 80% 100%, rgba(255,200,50,0.05) 0%, transparent 40%);
+  }
+
+  #scene-medieval .tl-particles::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% 80%, rgba(200,80,20,0.1) 0%, transparent 60%),
+                radial-gradient(ellipse at 20% 60%, rgba(255,100,0,0.05) 0%, transparent 30%);
+  }
+
+  #scene-future .tl-particles::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% 80%, rgba(0,200,255,0.08) 0%, transparent 60%),
+                radial-gradient(ellipse at 30% 40%, rgba(100,0,255,0.06) 0%, transparent 40%),
+                radial-gradient(ellipse at 70% 30%, rgba(0,255,200,0.05) 0%, transparent 40%);
+  }
+
+  .tl-content { position: relative; z-index: 2; text-align: center; }
+
+  /* ========= FINAL SCENE ========= */
+  #scene-final {
+    background: radial-gradient(ellipse at 50% 50%, #090020 0%, #020408 80%);
+  }
+
+  .final-icon {
+    font-size: clamp(3rem, 8vw, 5rem);
+    margin-bottom: 16px;
+    animation: float 3s ease-in-out infinite;
+  }
+
+  .final-title {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: clamp(1.2rem, 3.5vw, 2.2rem);
+    background: linear-gradient(90deg, var(--neon-gold), #fff, var(--neon-blue));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 12px;
+  }
+
+  .final-subtitle {
+    font-size: clamp(0.85rem, 1.8vw, 1rem);
+    color: rgba(180,200,220,0.7);
+    margin-bottom: 28px;
+    font-weight: 300;
+    letter-spacing: 0.06em;
+  }
+
+  .btn-group {
+    display: flex;
+    gap: 14px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  /* ========= PORTAL TRANSITION OVERLAY ========= */
+  #portal-transition {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+  }
+  #portal-transition.active {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .transition-portal {
+    width: clamp(100px, 20vw, 160px);
+    height: clamp(100px, 20vw, 160px);
+    border-radius: 50%;
+    background: radial-gradient(circle, #4400ff 0%, #0055ff 40%, transparent 70%);
+    box-shadow: 0 0 60px #4400ff, 0 0 120px rgba(68,0,255,0.4);
+    animation: transitionPulse 0.3s ease-in-out infinite alternate;
+  }
+
+  /* ========= MUSIC CONTROL ========= */
+  #music-btn {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 500;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.6);
+    border: 1px solid rgba(0,212,255,0.4);
+    color: var(--neon-blue);
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(8px);
+  }
+  #music-btn:hover {
+    border-color: var(--neon-blue);
+    box-shadow: 0 0 20px rgba(0,212,255,0.3);
+  }
+
+  /* ========= PROGRESS INDICATOR ========= */
+  #progress-bar {
+    position: fixed;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 500;
+    display: flex;
+    gap: 8px;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+  }
+  #progress-bar.visible { opacity: 1; }
+  .progress-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+    border: 1px solid rgba(255,255,255,0.3);
+    transition: all 0.4s ease;
+  }
+  .progress-dot.done { background: var(--neon-blue); box-shadow: 0 0 8px var(--neon-blue); }
+  .progress-dot.active { background: var(--neon-purple); box-shadow: 0 0 12px var(--neon-purple); transform: scale(1.3); }
+
+  /* ========= CANVAS PARTICLES ========= */
+  #particles-canvas {
+    position: fixed;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  /* ========= SCANLINE EFFECT ========= */
+  .scanlines {
+    position: fixed;
+    inset: 0;
+    z-index: 3;
+    pointer-events: none;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+  }
+
+  /* ========= CORNER DECORATIONS ========= */
+  .corner-decor {
+    position: fixed;
+    z-index: 4;
+    pointer-events: none;
+  }
+  .corner-decor.tl { top: 0; left: 0; }
+  .corner-decor.tr { top: 0; right: 0; transform: scaleX(-1); }
+  .corner-decor.bl { bottom: 0; left: 0; transform: scaleY(-1); }
+  .corner-decor.br { bottom: 0; right: 0; transform: scale(-1); }
+
+  /* ========= ANIMATIONS ========= */
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @keyframes portalPulse {
+    0%, 100% { box-shadow: inset 0 0 30px rgba(0,100,255,0.6), 0 0 20px rgba(0,100,255,0.3); }
+    50% { box-shadow: inset 0 0 60px rgba(0,200,255,0.8), 0 0 40px rgba(0,200,255,0.5); }
+  }
+
+  @keyframes ripple {
+    0% { transform: scale(1); opacity: 0.4; }
+    100% { transform: scale(1.6); opacity: 0; }
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-12px); }
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  @keyframes transitionPulse {
+    from { transform: scale(1); }
+    to { transform: scale(1.15); }
+  }
+
+  @keyframes cardEntrance {
+    from { opacity: 0; transform: translateY(30px) scale(0.95); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  @keyframes glitch {
+    0%, 100% { transform: translate(0); }
+    20% { transform: translate(-2px, 1px); }
+    40% { transform: translate(2px, -1px); }
+    60% { transform: translate(-1px, 2px); }
+    80% { transform: translate(1px, -2px); }
+  }
+
+  .cards-grid .timeline-card {
+    animation: cardEntrance 0.6s ease backwards;
+  }
+  .cards-grid .timeline-card:nth-child(1) { animation-delay: 0.1s; }
+  .cards-grid .timeline-card:nth-child(2) { animation-delay: 0.25s; }
+  .cards-grid .timeline-card:nth-child(3) { animation-delay: 0.4s; }
+
+  /* ========= PORTAL ACTIVATING ========= */
+  .portal-container.activating .ring-1 { animation: spin 0.5s linear infinite; border-color: rgba(0,212,255,1); box-shadow: 0 0 40px rgba(0,212,255,0.8); }
+  .portal-container.activating .ring-2 { animation: spin 0.8s linear infinite reverse; border-color: rgba(155,48,255,1); box-shadow: 0 0 40px rgba(155,48,255,0.8); }
+  .portal-container.activating .ring-3 { animation: spin 0.6s linear infinite; border-color: rgba(255,215,0,0.8); }
+  .portal-container.activating .portal-core { animation: portalPulse 0.3s ease-in-out infinite; }
+
+  /* ========= RESPONSIVE ========= */
+  @media (max-width: 600px) {
+    .cards-grid { flex-direction: column; align-items: center; }
+    .timeline-card { width: min(280px, 90vw); }
+    .portal-container { width: 220px; height: 220px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Background layers -->
+<canvas id="starfield"></canvas>
+<canvas id="particles-canvas"></canvas>
+<div class="noise"></div>
+<div class="scanlines"></div>
+
+<!-- Corner decorations -->
+<svg class="corner-decor tl" width="60" height="60" viewBox="0 0 60 60"><path d="M0 0 L40 0 L0 40" fill="none" stroke="rgba(0,212,255,0.3)" stroke-width="1"/><path d="M0 0 L20 0 L0 20" fill="none" stroke="rgba(0,212,255,0.2)" stroke-width="1"/></svg>
+<svg class="corner-decor tr" width="60" height="60" viewBox="0 0 60 60"><path d="M0 0 L40 0 L0 40" fill="none" stroke="rgba(0,212,255,0.3)" stroke-width="1"/><path d="M0 0 L20 0 L0 20" fill="none" stroke="rgba(0,212,255,0.2)" stroke-width="1"/></svg>
+<svg class="corner-decor bl" width="60" height="60" viewBox="0 0 60 60"><path d="M0 0 L40 0 L0 40" fill="none" stroke="rgba(0,212,255,0.3)" stroke-width="1"/></svg>
+<svg class="corner-decor br" width="60" height="60" viewBox="0 0 60 60"><path d="M0 0 L40 0 L0 40" fill="none" stroke="rgba(0,212,255,0.3)" stroke-width="1"/></svg>
+
+<!-- Music control -->
+<button id="music-btn" title="Toggle Music">🔇</button>
+
+<!-- Progress dots -->
+<div id="progress-bar">
+  <div class="progress-dot" id="dot-0"></div>
+  <div class="progress-dot" id="dot-1"></div>
+  <div class="progress-dot" id="dot-2"></div>
+  <div class="progress-dot" id="dot-3"></div>
+</div>
+
+<!-- Portal Transition Overlay -->
+<div id="portal-transition">
+  <div class="transition-portal"></div>
+</div>
+
+<!-- ===== SCENE 1: INTRO ===== -->
+<div class="scene active" id="scene-intro">
+  <div class="intro-content">
+    <div class="title-badge">⚡ Classified Research Initiative ⚡</div>
+    <h1 class="main-title">Time Travel<br>Portal</h1>
+
+    <div class="portal-container" id="main-portal">
+      <div class="portal-ripple"></div>
+      <div class="portal-ripple"></div>
+      <div class="portal-ripple"></div>
+      <div class="portal-ring ring-1"></div>
+      <div class="portal-ring ring-2"></div>
+      <div class="portal-ring ring-3"></div>
+      <div class="portal-ring ring-4"></div>
+      <div class="portal-core">
+        <div class="portal-inner-glow"></div>
+      </div>
+    </div>
+
+    <div class="typewriter-wrap">
+      <div id="typewriter-text"><span class="cursor-blink"></span></div>
+    </div>
+
+    <button class="btn-portal" id="btn-enter" onclick="enterPortal()">
+      <span>⊕</span> Enter the Portal
+    </button>
+  </div>
+</div>
+
+<!-- ===== SCENE 2: TIMELINE SELECTION ===== -->
+<div class="scene" id="scene-timelines">
+  <div class="timelines-header">
+    <div class="section-label">◈ TEMPORAL NAVIGATION SYSTEM ◈</div>
+    <h2 class="section-title">Choose Your Timeline</h2>
+  </div>
+
+  <div class="cards-grid">
+    <div class="timeline-card card-egypt" onclick="travelTo('egypt')">
+      <span class="card-icon">🏺</span>
+      <div class="card-era">◆ 2560 BCE ◆</div>
+      <div class="card-title">Ancient Egypt</div>
+      <div class="card-desc">Pyramids, pharaohs, and lost secrets buried under golden sands.</div>
+      <div class="card-enter">ENTER ERA →</div>
+    </div>
+
+    <div class="timeline-card card-medieval" onclick="travelTo('medieval')">
+      <span class="card-icon">⚔️</span>
+      <div class="card-era">◆ 1200 CE ◆</div>
+      <div class="card-title">Medieval Castle</div>
+      <div class="card-desc">Knights, dragons, and royal kingdoms wrapped in fog and flame.</div>
+      <div class="card-enter">ENTER ERA →</div>
+    </div>
+
+    <div class="timeline-card card-future" onclick="travelTo('future')">
+      <span class="card-icon">🚀</span>
+      <div class="card-era">◆ 2387 CE ◆</div>
+      <div class="card-title">Future City</div>
+      <div class="card-desc">Flying vehicles and neon cyber cities where AI rules all.</div>
+      <div class="card-enter">ENTER ERA →</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SCENE 3: ANCIENT EGYPT ===== -->
+<div class="scene" id="scene-egypt">
+  <div class="tl-particles"></div>
+  <div class="tl-content">
+    <div class="tl-visual">🏛️</div>
+    <div class="tl-era-label">◆ ANCIENT EGYPT · 2560 BCE ◆</div>
+    <h2 class="tl-title">Land of the Pharaohs</h2>
+    <p class="tl-story">You arrive in Ancient Egypt as the Great Pyramid rises under a blazing sun. The air shimmers with heat as priests chant sacred hymns. A golden falcon watches from the temple gates — you are in the age of gods and kings.</p>
+    <div class="tl-ambience">
+      <span class="ambience-tag">🌬 DESERT WIND</span>
+      <span class="ambience-tag">🎵 TEMPLE CHANTS</span>
+      <span class="ambience-tag">☀ BLAZING HEAT</span>
+    </div>
+    <button class="btn-portal gold" onclick="returnToPortal()" style="opacity:1;animation:none;">
+      ↩ Return to Portal
+    </button>
+  </div>
+</div>
+
+<!-- ===== SCENE 4: MEDIEVAL CASTLE ===== -->
+<div class="scene" id="scene-medieval">
+  <div class="tl-particles"></div>
+  <div class="tl-content">
+    <div class="tl-visual">🏰</div>
+    <div class="tl-era-label">◆ MEDIEVAL ERA · 1200 CE ◆</div>
+    <h2 class="tl-title">Kingdom of Shadows</h2>
+    <p class="tl-story">You step through swirling fog into a medieval fortress. Torches blaze along stone walls while armored knights patrol the battlements. Somewhere in the darkness, a dragon stirs. The royal court awaits your presence.</p>
+    <div class="tl-ambience">
+      <span class="ambience-tag">⚔ SWORD CLASHES</span>
+      <span class="ambience-tag">🔥 TORCH CRACKLE</span>
+      <span class="ambience-tag">🌫 ANCIENT FOG</span>
+    </div>
+    <button class="btn-portal" style="border-color:#ff8844;color:#ff8844;opacity:1;animation:none;" onclick="returnToPortal()">
+      ↩ Return to Portal
+    </button>
+  </div>
+</div>
+
+<!-- ===== SCENE 5: FUTURE CITY ===== -->
+<div class="scene" id="scene-future">
+  <div class="tl-particles"></div>
+  <div class="tl-content">
+    <div class="tl-visual">🌆</div>
+    <div class="tl-era-label">◆ FUTURE CITY · 2387 CE ◆</div>
+    <h2 class="tl-title">Neo-Cyber Metropolis</h2>
+    <p class="tl-story">You materialize above a neon-soaked skyline. Autonomous drones weave between crystalline towers while holographic billboards pulse with alien languages. In this era, neural networks dream and machines have become the architects of civilization.</p>
+    <div class="tl-ambience">
+      <span class="ambience-tag">🤖 DRONE HUMS</span>
+      <span class="ambience-tag">💡 NEON PULSE</span>
+      <span class="ambience-tag">🌐 DATA STREAMS</span>
+    </div>
+    <button class="btn-portal" style="opacity:1;animation:none;" onclick="returnToPortal()">
+      ↩ Return to Portal
+    </button>
+  </div>
+</div>
+
+<!-- ===== SCENE 6: FINAL ===== -->
+<div class="scene" id="scene-final">
+  <div class="final-icon">✨</div>
+  <div class="section-label">◈ TEMPORAL JOURNEY COMPLETE ◈</div>
+  <h2 class="final-title">You have experienced<br>the power of time travel.</h2>
+  <p class="final-subtitle">Three timelines visited. Countless histories witnessed.<br>The portal awaits your next journey.</p>
+  <div class="btn-group">
+    <button class="btn-portal gold" onclick="goToTimelines()" style="opacity:1;animation:none;">
+      ⊕ Explore Another Timeline
+    </button>
+    <button class="btn-portal purple" onclick="restartJourney()" style="opacity:1;animation:none;">
+      ↺ Restart Journey
+    </button>
+  </div>
+</div>
+
+<script>
+// =================== AUDIO ENGINE ===================
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+let musicStarted = false;
+let masterGain = null;
+let isMuted = false;
+let visitedTimelines = new Set();
+let currentScene = 'intro';
+const SCENES = ['intro', 'timelines', 'egypt', 'medieval', 'future', 'final'];
+
+// Web Audio synth — creates an epic ambient soundtrack without any MP3 files
+function initAudio() {
+  if (musicStarted) return;
+  musicStarted = true;
+  audioCtx = new AudioCtx();
+  masterGain = audioCtx.createGain();
+  masterGain.gain.value = 0.18;
+  masterGain.connect(audioCtx.destination);
+
+  startAmbientMusic();
+  document.getElementById('music-btn').textContent = '🔊';
+}
+
+function startAmbientMusic() {
+  // Deep bass drone
+  playDrone(55, 0.12, 0);
+  playDrone(110, 0.08, 0.5);
+  // Mid harmonics
+  playDrone(165, 0.05, 1.2);
+  playDrone(220, 0.04, 2.1);
+  // High shimmer
+  playShimmer();
+  // Rhythmic pulse
+  schedulePulse();
+}
+
+function playDrone(freq, gain, delay) {
+  if (!audioCtx) return;
+  const osc = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  const filter = audioCtx.createBiquadFilter();
+
+  osc.type = 'sawtooth';
+  osc.frequency.value = freq;
+
+  // Slight detune for richness
+  const osc2 = audioCtx.createOscillator();
+  osc2.type = 'sine';
+  osc2.frequency.value = freq * 1.005;
+
+  filter.type = 'lowpass';
+  filter.frequency.value = freq * 4;
+  filter.Q.value = 2;
+
+  g.gain.value = 0;
+  g.gain.setTargetAtTime(gain, audioCtx.currentTime + delay, 2);
+
+  osc.connect(filter);
+  osc2.connect(filter);
+  filter.connect(g);
+  g.connect(masterGain);
+
+  osc.start(audioCtx.currentTime + delay);
+  osc2.start(audioCtx.currentTime + delay);
+
+  // Slow modulation
+  const lfo = audioCtx.createOscillator();
+  const lfoGain = audioCtx.createGain();
+  lfo.frequency.value = 0.08 + Math.random() * 0.05;
+  lfoGain.gain.value = freq * 0.01;
+  lfo.connect(lfoGain);
+  lfoGain.connect(osc.frequency);
+  lfo.start();
+}
+
+function playShimmer() {
+  if (!audioCtx) return;
+  const notes = [440, 554, 659, 880, 1108];
+  notes.forEach((freq, i) => {
+    const osc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+    g.gain.value = 0;
+    g.gain.setTargetAtTime(0.012, audioCtx.currentTime + 3 + i * 0.5, 2);
+    osc.connect(g);
+    g.connect(masterGain);
+    osc.start();
+
+    const lfo = audioCtx.createOscillator();
+    const lg = audioCtx.createGain();
+    lfo.frequency.value = 0.15 + i * 0.03;
+    lg.gain.value = freq * 0.008;
+    lfo.connect(lg);
+    lg.connect(osc.frequency);
+    lfo.start();
+  });
+}
+
+let pulseInterval = null;
+function schedulePulse() {
+  if (!audioCtx) return;
+  let beat = 0;
+  pulseInterval = setInterval(() => {
+    if (!audioCtx || audioCtx.state === 'closed') return;
+    const osc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = beat % 4 === 0 ? 55 : beat % 2 === 0 ? 73.4 : 82.4;
+    g.gain.value = 0.08;
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.6);
+    osc.connect(g);
+    g.connect(masterGain);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.7);
+    beat++;
+  }, 800);
+}
+
+function playPortalSound() {
+  if (!audioCtx) return;
+  const osc = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  osc.type = 'sine';
+  osc.frequency.value = 200;
+  osc.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.8);
+  osc.frequency.exponentialRampToValueAtTime(1600, audioCtx.currentTime + 1.2);
+  g.gain.value = 0.15;
+  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.5);
+  osc.connect(g);
+  g.connect(masterGain);
+  osc.start();
+  osc.stop(audioCtx.currentTime + 1.6);
+
+  // Whoosh noise
+  const bufSize = audioCtx.sampleRate * 1;
+  const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
+  const noise = audioCtx.createBufferSource();
+  noise.buffer = buf;
+  const nf = audioCtx.createBiquadFilter();
+  nf.type = 'bandpass';
+  nf.frequency.value = 600;
+  nf.frequency.exponentialRampToValueAtTime(2000, audioCtx.currentTime + 1);
+  nf.Q.value = 0.5;
+  const ng = audioCtx.createGain();
+  ng.gain.value = 0.08;
+  ng.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.2);
+  noise.connect(nf);
+  nf.connect(ng);
+  ng.connect(masterGain);
+  noise.start();
+}
+
+function toggleMute() {
+  if (!audioCtx) { initAudio(); return; }
+  isMuted = !isMuted;
+  masterGain.gain.setTargetAtTime(isMuted ? 0 : 0.18, audioCtx.currentTime, 0.3);
+  document.getElementById('music-btn').textContent = isMuted ? '🔇' : '🔊';
+}
+
+// =================== STARFIELD ===================
+const starCanvas = document.getElementById('starfield');
+const starCtx = starCanvas.getContext('2d');
+let stars = [];
+
+function initStars() {
+  starCanvas.width = window.innerWidth;
+  starCanvas.height = window.innerHeight;
+  stars = Array.from({length: 220}, () => ({
+    x: Math.random() * starCanvas.width,
+    y: Math.random() * starCanvas.height,
+    r: Math.random() * 1.4 + 0.2,
+    speed: Math.random() * 0.3 + 0.05,
+    opacity: Math.random() * 0.8 + 0.2,
+    twinkle: Math.random() * Math.PI * 2
+  }));
+}
+
+function animateStars() {
+  starCtx.clearRect(0, 0, starCanvas.width, starCanvas.height);
+  stars.forEach(s => {
+    s.twinkle += 0.02;
+    const opacity = s.opacity * (0.7 + 0.3 * Math.sin(s.twinkle));
+    starCtx.beginPath();
+    starCtx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    starCtx.fillStyle = `rgba(180,210,255,${opacity})`;
+    starCtx.fill();
+    s.y += s.speed;
+    if (s.y > starCanvas.height) { s.y = -2; s.x = Math.random() * starCanvas.width; }
+  });
+  requestAnimationFrame(animateStars);
+}
+
+// =================== FLOATING PARTICLES ===================
+const pCanvas = document.getElementById('particles-canvas');
+const pCtx = pCanvas.getContext('2d');
+let particles = [];
+
+function initParticles() {
+  pCanvas.width = window.innerWidth;
+  pCanvas.height = window.innerHeight;
+}
+
+function spawnParticle(x, y, color) {
+  particles.push({
+    x: x || Math.random() * pCanvas.width,
+    y: y || pCanvas.height + 10,
+    vx: (Math.random() - 0.5) * 1.5,
+    vy: -(Math.random() * 1.5 + 0.5),
+    r: Math.random() * 3 + 1,
+    life: 1,
+    decay: Math.random() * 0.008 + 0.003,
+    color: color || `hsl(${Math.random() > 0.5 ? 200 + Math.random()*60 : 260 + Math.random()*40}, 100%, 70%)`
+  });
+}
+
+function animateParticles() {
+  pCtx.clearRect(0, 0, pCanvas.width, pCanvas.height);
+
+  // Spawn ambient particles
+  if (Math.random() < 0.4) spawnParticle();
+
+  particles.forEach((p, i) => {
+    p.x += p.vx;
+    p.y += p.vy;
+    p.life -= p.decay;
+    p.vx *= 0.99;
+
+    const radius = p.r * p.life;
+    if (radius <= 0) { particles.splice(i, 1); return; }
+    pCtx.beginPath();
+    pCtx.arc(p.x, p.y, radius, 0, Math.PI * 2);
+    pCtx.fillStyle = p.color.replace(')', `, ${p.life})`).replace('hsl', 'hsla');
+    pCtx.shadowBlur = 8;
+    pCtx.shadowColor = p.color;
+    pCtx.fill();
+    pCtx.shadowBlur = 0;
+
+    if (p.life <= 0) particles.splice(i, 1);
+  });
+  requestAnimationFrame(animateParticles);
+}
+
+// =================== TYPEWRITER ===================
+const lines = [
+  "Scientists discovered a portal that can travel through time.",
+  "Choose a timeline and step into history."
+];
+let lineIndex = 0;
+let charIndex = 0;
+let typeEl = document.getElementById('typewriter-text');
+
+function typeWriter() {
+  if (lineIndex >= lines.length) return;
+  const line = lines[lineIndex];
+  if (charIndex < line.length) {
+    typeEl.innerHTML = line.substring(0, charIndex + 1) + '<span class="cursor-blink"></span>';
+    charIndex++;
+    setTimeout(typeWriter, 38 + Math.random() * 30);
+  } else {
+    setTimeout(() => {
+      lineIndex++;
+      charIndex = 0;
+      if (lineIndex < lines.length) {
+        typeEl.innerHTML = lines[0] + '<br>' + '<span class="cursor-blink"></span>';
+        setTimeout(typeWriter, 400);
+      }
+    }, 900);
+  }
+}
+
+// =================== SCENE MANAGEMENT ===================
+function showScene(id) {
+  document.querySelectorAll('.scene').forEach(s => s.classList.remove('active'));
+  const next = document.getElementById('scene-' + id);
+  if (next) setTimeout(() => next.classList.add('active'), 50);
+  currentScene = id;
+  updateProgress(id);
+}
+
+function updateProgress(id) {
+  const bar = document.getElementById('progress-bar');
+  const map = {intro:0, timelines:1, egypt:2, medieval:2, future:2, final:3};
+  const step = map[id] ?? 0;
+  bar.classList.toggle('visible', id !== 'intro');
+  for (let i = 0; i < 4; i++) {
+    const dot = document.getElementById('dot-' + i);
+    dot.className = 'progress-dot' + (i < step ? ' done' : i === step ? ' active' : '');
+  }
+}
+
+function portalTransition(callback) {
+  const overlay = document.getElementById('portal-transition');
+  playPortalSound();
+
+  // Burst particles
+  const cx = window.innerWidth / 2;
+  const cy = window.innerHeight / 2;
+  for (let i = 0; i < 40; i++) {
+    setTimeout(() => {
+      const angle = Math.random() * Math.PI * 2;
+      const dist = Math.random() * 80;
+      spawnParticle(
+        cx + Math.cos(angle) * dist,
+        cy + Math.sin(angle) * dist,
+        `hsl(${200 + Math.random() * 80}, 100%, 70%)`
+      );
+    }, i * 20);
+  }
+
+  overlay.classList.add('active');
+  setTimeout(() => {
+    callback();
+    setTimeout(() => overlay.classList.remove('active'), 600);
+  }, 800);
+}
+
+// =================== INTERACTIONS ===================
+function enterPortal() {
+  initAudio();
+  const portal = document.getElementById('main-portal');
+  portal.classList.add('activating');
+  playPortalSound();
+
+  // Burst particles
+  for (let i = 0; i < 60; i++) {
+    setTimeout(() => {
+      const cx = window.innerWidth / 2;
+      const cy = window.innerHeight * 0.42;
+      spawnParticle(cx + (Math.random()-0.5)*200, cy + (Math.random()-0.5)*200, `hsl(${200+Math.random()*120},100%,70%)`);
+    }, i * 15);
+  }
+
+  setTimeout(() => {
+    portalTransition(() => showScene('timelines'));
+    portal.classList.remove('activating');
+  }, 1200);
+}
+
+function travelTo(era) {
+  initAudio();
+  visitedTimelines.add(era);
+  portalTransition(() => {
+    showScene(era);
+    if (visitedTimelines.size >= 3) {
+      setTimeout(() => {
+        const btn = document.querySelector(`#scene-${era} .btn-portal`);
+        if (btn) {
+          btn.style.borderColor = '#ffd700';
+          btn.style.color = '#ffd700';
+          btn.textContent = '✓ Final Destination — Return & Complete';
+          btn.onclick = () => returnToPortal(true);
+        }
+      }, 2000);
+    }
+  });
+}
+
+function returnToPortal(complete = false) {
+  initAudio();
+  if (complete || visitedTimelines.size >= 3) {
+    portalTransition(() => showScene('final'));
+  } else {
+    portalTransition(() => showScene('timelines'));
+  }
+}
+
+function goToTimelines() { portalTransition(() => showScene('timelines')); }
+
+function restartJourney() {
+  visitedTimelines.clear();
+  portalTransition(() => showScene('intro'));
+}
+
+// =================== INIT ===================
+window.addEventListener('resize', () => {
+  starCanvas.width = window.innerWidth;
+  starCanvas.height = window.innerHeight;
+  pCanvas.width = window.innerWidth;
+  pCanvas.height = window.innerHeight;
+  initStars();
+});
+
+initStars();
+initParticles();
+animateStars();
+animateParticles();
+setTimeout(typeWriter, 2400);
+
+document.getElementById('music-btn').addEventListener('click', toggleMute);
+
+// Mouse sparkle trail
+document.addEventListener('mousemove', (e) => {
+  if (Math.random() < 0.15) {
+    spawnParticle(e.clientX, e.clientY, `hsl(${200+Math.random()*80},100%,70%)`);
+  }
+});
+
+// Touch support
+document.addEventListener('touchstart', initAudio, {once:true});
+</script>
+</body>
+</html>
